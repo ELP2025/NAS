@@ -1,0 +1,39 @@
+---
+AS1:
+- number: '1000'
+  IPv6_prefix: '1000:100:1000::'
+  IPv6_mask: '48'
+  IGP: RIP
+  routers:
+  - hostname: R1
+    loopback: 1.1.1.1
+    telnet_port: 3001
+  - hostname: R2
+    loopback: 2.2.2.2
+    telnet_port: 3002
+  internal_connections:
+  - first_peer_hostname: R1
+    first_peer__interface: Ge 1/0
+    second_peer_hostname: R2
+    second_peer_interface: Ge 1/0
+
+AS2:
+- number: '2000'
+  IPv6_prefix: '2000:200:2000::'
+  IPv6_mask: '65'
+  IGP: OSPF
+  routers:
+  - hostname: R5
+    loopback: 5.5.5.5
+  internal_connections:
+  - first_peer_hostname: R5
+    first_peer__interface: Ge 1/0
+    second_peer_hostname: R6
+    second_peer_interface: Ge 1/0
+
+
+BGP_connections:
+- AS_1: '1000'
+  AS_2: '2000'
+  relation: peer/client/ISP/...
+

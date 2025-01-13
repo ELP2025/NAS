@@ -2,16 +2,16 @@
   "AS" : [
     {
       "number"  : "1000",
-      "IPv6_prefix : "1000:100:1000::1",
+      "IPv6_prefix" : "1000:100:1000::",
       "IPv6_mask" : "64",
       "IGP" : "RIP/OSPF",
       "routers" : [
         {
           "hostname" : "R1",
-          "loopback" : "1.1.1.1",
+          "loopback" : "1.1.1.1"
         }
       ],
-      "connections" : [
+      "internal_connections" : [
         {
           "first_peer_hostname" : "R1",
           "first_peer__interface" : "Ge 1/0",
