@@ -11,6 +11,21 @@ AS1:
   - hostname: R2
     loopback: 2.2.2.2
     telnet_port: 3002
+  - hostname: R3
+    loopback: 3.3.3.3
+    telnet_port: 3003
+  - hostname: R4
+    loopback: 4.4.4.4
+    telnet_port: 3004
+  - hostname: R12
+    loopback: 12.12.12.12
+    telnet_port: 3012
+  - hostname: R13
+    loopback: 13.13.13.13
+    telnet_port: 3013
+  - hostname: R14
+    loopback: 14.14.14.14
+    telnet_port: 3014
   internal_connections:
   - first_peer_hostname: R1
     first_peer__interface: Ge 1/0
@@ -25,6 +40,26 @@ AS2:
   routers:
   - hostname: R5
     loopback: 5.5.5.5
+    telnet_port: 3005
+  - hostname: R6
+    loopback: 6.6.6.6
+    telnet_port: 3006
+  - hostname: R7
+    loopback: 7.7.7.7
+    telnet_port: 3007
+  - hostname: R8
+    loopback: 8.8.8.8
+    telnet_port: 3008
+
+  - hostname: R9
+    loopback: 9.9.9.9
+    telnet_port: 3009
+  - hostname: R10
+    loopback: 10.10.10.10
+    telnet_port: 3010
+  - hostname: R11
+    loopback: 11.11.11.11
+    telnet_port: 3011
   internal_connections:
   - first_peer_hostname: R5
     first_peer__interface: Ge 1/0
