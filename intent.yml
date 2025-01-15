@@ -28,20 +28,20 @@ AS1:
     telnet_port: 3014
   internal_connections:
   - first_peer_hostname: R1
-    first_peer__interface: Ge 1/0
+    first_peer_interface: Ge 1/0
     second_peer_hostname: R2
     second_peer_interface: Ge 1/0
   - first_peer_hostname: R2
-    first_peer__interface: Ge 2/0
+    first_peer_interface: Ge 2/0
     second_peer_hostname: R3
     second_peer_interface: Ge 2/0
   - first_peer_hostname: R3
-    first_peer__interface: Ge 1/0
+    first_peer_interface: Ge 1/0
     second_peer_hostname: R4
     second_peer_interface: Ge 1/0
 
   - first_peer_hostname: R12
-    first_peer__interface: Ge 2/0
+    first_peer_interface: Ge 2/0
     second_peer_hostname: R13
     second_peer_interface: Ge 2/0
   - first_peer_hostname: R13
@@ -49,25 +49,25 @@ AS1:
     second_peer_hostname: R14
     second_peer_interface: Ge 1/0
   - first_peer_hostname: R14
-    first_peer__interface: Ge 2/0
+    first_peer_interface: Ge 2/0
     second_peer_hostname: R1
     second_peer_interface: Ge 2/0
   
   - first_peer_hostname: R2
-    first_peer__interface: Ge 3/0
+    first_peer_interface: Ge 3/0
     second_peer_hostname: R14
     second_peer_interface: Ge 3/0
   - first_peer_hostname: R3
-    first_peer__interface: Ge 3/0
+    first_peer_interface: Ge 3/0
     second_peer_hostname: R13
     second_peer_interface: Ge 3/0
 
   - first_peer_hostname: R3
-    first_peer__interface: Ge 4/0
+    first_peer_interface: Ge 4/0
     second_peer_hostname: R12
     second_peer_interface: Ge 4/0
   - first_peer_hostname: R4
-    first_peer__interface: Ge 4/0
+    first_peer_interface: Ge 4/0
     second_peer_hostname: R13
     second_peer_interface: Ge 4/0
 
@@ -103,45 +103,45 @@ AS1:
     telnet_port: 3011
   internal_connections:
   - first_peer_hostname: R5
-    first_peer__interface: Ge 1/0
+    first_peer_interface: Ge 1/0
     second_peer_hostname: R6
     second_peer_interface: Ge 1/0
   - first_peer_hostname: R6
-    first_peer__interface: Ge 2/0
+    first_peer_interface: Ge 2/0
     second_peer_hostname: R7
     second_peer_interface: Ge 2/0
   - first_peer_hostname: R7
-    first_peer__interface: Ge 1/0
+    first_peer_interface: Ge 1/0
     second_peer_hostname: R8
     second_peer_interface: Ge 1/0
   - first_peer_hostname: R8
-    first_peer__interface: Ge 2/0
+    first_peer_interface: Ge 2/0
     second_peer_hostname: R9
     second_peer_interface: Ge 2/0
   - first_peer_hostname: R9
-    first_peer__interface: Ge 1/0
+    first_peer_interface: Ge 1/0
     second_peer_hostname: R10
     second_peer_interface: Ge 1/0
   - first_peer_hostname: R10
-    first_peer__interface: Ge 2/0
+    first_peer_interface: Ge 2/0
     second_peer_hostname: R11
     second_peer_interface: Ge 2/0
 
   - first_peer_hostname: R6
-    first_peer__interface: Ge 3/0
+    first_peer_interface: Ge 3/0
     second_peer_hostname: R10
     second_peer_interface: Ge 3/0
   - first_peer_hostname: R7
-    first_peer__interface: Ge 3/0
+    first_peer_interface: Ge 3/0
     second_peer_hostname: R9
     second_peer_interface: Ge 3/0
 
   - first_peer_hostname: R5
-    first_peer__interface: Ge 4/0
+    first_peer_interface: Ge 4/0
     second_peer_hostname: R10
     second_peer_interface: Ge 4/0
   - first_peer_hostname: R6
-    first_peer__interface: Ge 4/0
+    first_peer_interface: Ge 4/0
     second_peer_hostname: R11
     second_peer_interface: Ge 4/0
 

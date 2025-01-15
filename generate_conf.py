@@ -15,17 +15,19 @@ def load_intent_file(filename) :
 
 def get_as_data(data, as_number):
     """Function to extract AS data from data"""
-    return data.get(f'AS{as_number}', {})
+    return data.get(f'AS{as_number}', {})[0]
 
 def get_all_as_subnets(as_data):
     """Function that returns all the available subnets for an AS"""
-    network = ipaddress.ip_network(f"{as_data[0].get('IPv6_prefix')}/{as_data[0].get('IPv6_mask')}")
-    networks = iter([network.subnets(new_prefix=64)])
-    print(next(networks))
-    
+    network = ipaddress.ip_network(f"{as_data.get('IPv6_prefix')}/{as_data.get('IPv6_mask')}")
+    networks = iter(network.subnets(new_prefix=64))
+    next(networks) # Just to skip the first subnet (reserved for loopback)
+    return networks
 
-def get_as_routers_data(as_data):
-    return as_data.get('routers', {})
+def get_routers_interface_ip(as_data):
+    """Returns routers ips for each interface"""
+    routers = as_data.get('internal_connections', {})
+    print(routers)
 
 
 if __name__ == "__main__" :
@@ -37,4 +39,4 @@ if __name__ == "__main__" :
     args=parser.parse_args()
     data = load_intent_file(args.filename)
     data = get_as_data(data, 1)
-    get_all_as_subnets(data)
+    pprint(get_routers_interface_ip(data))
