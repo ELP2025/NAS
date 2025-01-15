@@ -30,10 +30,9 @@ def get_all_as_subnets(as_data):
     """Function that returns all the available subnets for an AS"""
     network = ipaddress.ip_network(f"{as_data.get('IPv6_prefix')}/{as_data.get('IPv6_mask')}")
     networks = iter(network.subnets(new_prefix=64))
-    next(networks) # Just to skip the first subnet (reserved for loopback)
     return networks
 
-def get_routers_interface_ip(as_data):
+def get_routers_internal_interface_ip(as_data):
     """Returns routers ips for each interface"""
     routers = {r.get('hostname', ''):{} for r in as_data.get('routers', {})} #Getting all the routers in the AS
     connections = as_data.get('internal_connections', {})     # Getting all the connections
@@ -59,12 +58,17 @@ def get_routers_interface_ip(as_data):
         subnet = next(subnets) 
     return routers, subnets
 
+def get_routers_external_interfaces_ip(data, routers):
+    pass
 
 if __name__ == "__main__" :
     try:
         args = argument_parser()
         data = load_intent_file(args.filename)
-        data = get_as_data(data, 1)
-        pprint(get_routers_interface_ip(data))
+        data_1 = get_as_data(data, 1)
+        data_2 = get_as_data(data, 2)
+        routers_as_1, subnets_1 = get_routers_internal_interface_ip(data_1)
+        routers_as_2, subnets_2 = get_routers_internal_interface_ip(data_2)
+        pprint(routers_as_1 | routers_as_2)
     except Exception as e:
         print(e)
