@@ -45,7 +45,7 @@ AS1:
     second_peer_hostname: R13
     second_peer_interface: Ge 2/0
   - first_peer_hostname: R13
-    first_peer__interface: Ge 1/0
+    first_peer_interface: Ge 1/0
     second_peer_hostname: R14
     second_peer_interface: Ge 1/0
   - first_peer_hostname: R14
@@ -74,7 +74,7 @@ AS1:
 
 
 
-  AS2:
+AS2:
 - number: '2000'
   IPv6_prefix: '2000:200:200::'
   IPv6_mask: '65'
