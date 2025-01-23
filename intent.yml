@@ -151,13 +151,13 @@ BGP_connections:
   AS_1_router_interface : 'Ge 2/0'
   AS_2: '2000'
   AS_2_router_hostname : 'R5'
-  AS_2_router_hostname : 'Ge 2/0'
+  AS_2_router_interface : 'Ge 2/0'
   relation: peer/client/ISP/...
 - AS_1: '1000'
   AS_1_router_hostname : 'R11'
   AS_1_router_interface : 'Ge 1/0'
   AS_2: '2000'
   AS_2_router_hostname : 'R11'
-  AS_2_router_hostname : 'Ge 1/0'
+  AS_2_router_interface : 'Ge 1/0'
   relation: peer/client/ISP/...
 

@@ -3,6 +3,7 @@ import ipaddress
 import argparse
 import json
 import yaml
+import re 
 
 def load_intent_file(filename):
     """Loading the file as a Python dict object. Compatible with yaml and  json"""
@@ -20,7 +21,6 @@ def argument_parser():
     parser.add_argument('-c', '--copy_config', action='store_true', help="Generate config files and copy them to the right GNS3 directory")
     parser.add_argument('-t', '--telnet', action='store_true', help="Automatically configures the routers using Telnet")
     return parser.parse_args()
-
 
 def get_as_data(data, as_number):
     """Function to extract AS data from data"""
@@ -58,17 +58,40 @@ def get_routers_internal_interface_ip(as_data):
         subnet = next(subnets) 
     return routers, subnets
 
-def get_routers_external_interfaces_ip(data, routers):
-    pass
+def get_routers_external_interfaces_ip(external_connections_data, routers, iters):
+    """Returns routers ips for each interface, including external connections"""
+    for connection in external_connections_data:
+        subnet = next(iters[connection.get('AS_1')])
+        # Getting all the connection details
+        first_peer = connection.get('AS_1_router_hostname', {})
+        first_interface = connection.get('AS_1_router_interface', {})
+        second_peer = connection.get('AS_2_router_hostname', {})
+        second_interface = connection.get('AS_2_router_interface', {})
+
+        # Error Checking
+        if routers.get(first_peer, {}).get(first_interface, None) : raise Exception(f'Intent file error : interface {first_interface} for router {first_peer} is already in use')
+        if routers.get(second_peer, {}).get(second_interface, None) : raise Exception(f'Intent file error : interface {second_interface} for router {second_peer} is already in use')
+
+        subnet_ip = subnet.hosts()
+
+        routers.get(first_peer, {}).update({first_interface : str(next(subnet_ip))})
+        routers.get(second_peer, {}).update({second_interface : str(next(subnet_ip))})
+    return routers   
 
 if __name__ == "__main__" :
-    try:
+    #try:
         args = argument_parser()
         data = load_intent_file(args.filename)
-        data_1 = get_as_data(data, 1)
-        data_2 = get_as_data(data, 2)
-        routers_as_1, subnets_1 = get_routers_internal_interface_ip(data_1)
-        routers_as_2, subnets_2 = get_routers_internal_interface_ip(data_2)
-        pprint(routers_as_1 | routers_as_2)
-    except Exception as e:
-        print(e)
+        as_data = dict()
+        routers_data = dict()
+        subnets_iters = dict()
+        for as_name_string in [key for key, val in data.items() if "AS" in key]:
+            as_name = int(re.findall(r'\d+', as_name_string)[0])
+            as_data[as_name] = get_as_data(data, as_name)
+            routers_data_as, subnets_iter_as = get_routers_internal_interface_ip(as_data[as_name])
+            routers_data.update(routers_data_as)
+            subnets_iters[as_data[as_name].get('number')] = subnets_iter_as
+        routers_data = get_routers_external_interfaces_ip(data.get("BGP_connections", {}), routers_data, subnets_iters)
+        pprint(routers_data)    
+#except Exception as e:
+    #    print(e)
