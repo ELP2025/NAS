@@ -32,6 +32,13 @@ def get_all_as_subnets(as_data):
     networks = iter(network.subnets(new_prefix=64))
     return networks
 
+def generate_routers_loopback_ips(routers, as_prefix):
+    """Returns the loopback adress for each router"""
+    if not as_prefix : raise Exception(f'Intent file error : at least one AS does not have an IPv6 Prefix')
+    for router in routers:
+        routers[router].update({'loopback0' : f'{as_prefix[:-1]}{str(router)[1:]}::{str(router)[1:]}/128'})
+    return routers
+
 def get_routers_internal_interface_ip(as_data):
     """Returns routers ips for each interface"""
     routers = {r.get('hostname', ''):{} for r in as_data.get('routers', {})} #Getting all the routers in the AS
@@ -51,11 +58,12 @@ def get_routers_internal_interface_ip(as_data):
        
         subnets_ip = subnet.hosts()
 
-        routers[c.get('first_peer_hostname', '')].update({c.get('first_peer_interface', '') : str(next(subnets_ip))})
-        routers[c.get('second_peer_hostname', '')].update({c.get('second_peer_interface', '') : str(next(subnets_ip))})
+        routers[c.get('first_peer_hostname', '')].update({c.get('first_peer_interface', '') : str(next(subnets_ip))+'/64'})
+        routers[c.get('second_peer_hostname', '')].update({c.get('second_peer_interface', '') : str(next(subnets_ip))+'/64'})
         
 
-        subnet = next(subnets) 
+        subnet = next(subnets)
+    routers = generate_routers_loopback_ips(routers, as_data.get('IPv6_prefix'))
     return routers, subnets
 
 def get_routers_external_interfaces_ip(external_connections_data, routers, iters):
@@ -74,12 +82,13 @@ def get_routers_external_interfaces_ip(external_connections_data, routers, iters
 
         subnet_ip = subnet.hosts()
 
-        routers.get(first_peer, {}).update({first_interface : str(next(subnet_ip))})
-        routers.get(second_peer, {}).update({second_interface : str(next(subnet_ip))})
+        routers.get(first_peer, {}).update({first_interface : str(next(subnet_ip))+'/64'})
+        routers.get(second_peer, {}).update({second_interface : str(next(subnet_ip))+'/64'})
     return routers   
 
+
 if __name__ == "__main__" :
-    #try:
+    try:
         args = argument_parser()
         data = load_intent_file(args.filename)
         as_data = dict()
@@ -93,5 +102,5 @@ if __name__ == "__main__" :
             subnets_iters[as_data[as_name].get('number')] = subnets_iter_as
         routers_data = get_routers_external_interfaces_ip(data.get("BGP_connections", {}), routers_data, subnets_iters)
         pprint(routers_data)    
-#except Exception as e:
-    #    print(e)
+    except Exception as e:
+        print(e)
