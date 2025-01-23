@@ -74,7 +74,7 @@ AS1:
 
 
 
-  AS2:
+AS2:
 - number: '2000'
   IPv6_prefix: '2000:200:200::'
   IPv6_mask: '65'
