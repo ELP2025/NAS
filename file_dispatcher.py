@@ -1,122 +1,70 @@
 #!/usr/bin/env python3
 
+
 import os
-#import paramiko
-#from scp import SCPClient
+import shutil
 
-def get_router_config_files(directory):
-    """Récupère un dictionnaire associant les routeurs aux fichiers de configuration.
-
-    Le nom du fichier doit inclure l'adresse IP ou l'identifiant du routeur.
-    Exemple : 192.168.1.1.cfg
+def find_gns3_config_files(gns3_project_dir):
+    """
+    Recherche récursivement tous les fichiers de configuration GNS3 au format i{numéro}_startup-config.cfg.
 
     Args:
-        directory (str): Répertoire contenant les fichiers de configuration.
+        gns3_project_dir (str): Chemin du dossier de configuration du projet GNS3.
 
     Returns:
-        dict: Dictionnaire {adresse_ip: chemin_vers_fichier}.
+        dict: Un dictionnaire {numéro_routeur: chemin_du_fichier}.
     """
-    config_files = {}
-    for file in os.listdir(directory):
-        if file.endswith('.cfg'):
-            router_ip = file.replace('.cfg', '')  # Supposons que le nom du fichier est l'IP
-            config_files[router_ip] = os.path.join(directory, file)
-    return config_files
+    router_configs = {}
 
-def distribute_configs(config_files_directory, router_mapping):
+    for root, sous_doss, files in os.walk(gns3_project_dir):
+        print (files)
+        print (sous_doss)
+        for file in files:
+            if file.startswith("i") and file.endswith("_startup-config.cfg"):
+                try:
+                    router_num = int(file[1:].split("_")[0])  # Extraction du numéro après "i"
+                    router_configs[router_num] = os.path.join(root, file)
+                except ValueError:
+                    continue  # Ignore les fichiers mal formatés
+
+    return router_configs
+
+def replace_configs(gns3_configs, custom_config_dir):
     """
-    Distribue les fichiers .cfg aux routeurs appropriés.
+    Remplace les fichiers de configuration GNS3 par les fichiers de configuration personnalisés.
 
     Args:
-        config_files_directory (str): Chemin du répertoire contenant les fichiers .cfg.
-        router_mapping (dict): Dictionnaire où les clés sont les adresses IP des routeurs,
-                               et les valeurs sont les chemins distants où placer les fichiers.
+        gns3_configs (dict): Dictionnaire {numéro_routeur: chemin_du_fichier_GNS3}.
+        custom_config_dir (str): Dossier contenant les fichiers de configuration personnalisés.
     """
-    config_files = get_router_config_files(config_files_directory)
+    replaced_files = 0
 
-    if not config_files:
-        print("Aucun fichier .cfg trouvé dans le répertoire spécifié.")
-        return
+    for router_num, gns3_config_path in gns3_configs.items():
+        custom_config_path = os.path.join(custom_config_dir, f"i{router_num}_startup-config.cfg")
 
-    for router_ip, remote_directory in router_mapping.items():
-        if router_ip not in config_files:
-            print(f"Aucun fichier de configuration trouvé pour le routeur {router_ip}.")
-            continue
+        if os.path.exists(custom_config_path):
+            shutil.copy(custom_config_path, gns3_config_path)
+            print(f" Remplacement : {gns3_config_path} ← {custom_config_path}")
+            replaced_files += 1
+        else:
+            print(f" Aucune config trouvée pour le routeur {router_num} ({custom_config_path} manquant)")
 
-        local_config_file = config_files[router_ip]
-
-        print(f"Connexion au routeur {router_ip}...")
-        
-        try:
-            # Établir la connexion SSH
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(router_ip, username='votre_utilisateur', password='votre_mot_de_passe')
-
-            # Utiliser SCP pour transférer le fichier
-            with SCPClient(ssh.get_transport()) as scp:
-                destination_path = os.path.join(remote_directory, os.path.basename(local_config_file))
-                print(f"Transfert de {local_config_file} vers {destination_path} sur {router_ip}...")
-                scp.put(local_config_file, destination_path)
-
-            print(f"Fichier transféré avec succès vers {router_ip}.")
-
-        except Exception as e:
-            print(f"Erreur lors de la connexion ou du transfert sur {router_ip}: {e}")
-
-        finally:
-            ssh.close()
-"""
-# Exemple d'utilisation
-if __name__ == "__main__":
-    # Répertoire local contenant les fichiers .cfg
-    local_config_directory = "/chemin/vers/vos/configs"
-
-    # Mapping des routeurs : adresse IP -> répertoire distant
-    routers = {
-        "192.168.1.1": "/etc/router/configs/",
-        "192.168.1.2": "/etc/router/configs/",
-        "192.168.1.3": "/etc/router/configs/"
-    }
-
-    distribute_configs(local_config_directory, routers)
-"""
-
-
-def scan_files(directory, target_extension=None):
-    """
-    Explore tous les fichiers dans un répertoire et ses sous-répertoires.
-
-    Args:
-        directory (str): Le chemin du répertoire de base à explorer.
-        target_extension (str, optional): Extension des fichiers à rechercher (ex: ".cfg").
-
-    Returns:
-        list: Une liste de chemins vers les fichiers correspondant au critère.
-    """
-    matching_files = []
-
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if target_extension is None or file.endswith(target_extension):
-                matching_files.append(os.path.join(root, file))
-
-    return matching_files
+    print(f"\n {replaced_files}/{len(gns3_configs)} fichiers remplacés.")
 
 if __name__ == "__main__":
-    # Chemin de la zone à scanner
-    # base_directory = input("Rentrer le chemin de votre projet pour mettre en place les configs")
-    base_directory = "C:/Users/bapti/GNS3/projects/Test_config/project-files/dynamips"
-    # Extension cible (par exemple ".cfg"), ou None pour tout lister
-    extension_cible = ".cfg"
+    # Chemins à modifier selon ton projet
+    gns3_project_directory = "/mnt/c/Users/bapti/GNS3/projects/Test_config"
+    custom_config_directory = "/home/baptiste/GNS/GNS3"
 
-    print("Scan en cours...")
-    files = scan_files(base_directory, target_extension=extension_cible)
-    print (files)
+    print(" Recherche des fichiers de configuration GNS3...")
+    gns3_configs = find_gns3_config_files(gns3_project_directory)
 
-    if files:
-        print(f"Fichiers trouvés ({len(files)}):")
-        for file in files:
-            print(file)
+    if not gns3_configs:
+        print(" Aucun fichier de configuration GNS3 trouvé !")
     else:
-        print("Aucun fichier correspondant trouvé.")
+        print(f" {len(gns3_configs)} fichiers de configuration trouvés.")
+
+        print("\n Remplacement des fichiers...")
+        replace_configs(gns3_configs, custom_config_directory)
+
+

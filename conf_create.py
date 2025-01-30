@@ -53,10 +53,11 @@ def config_interfaces(valeurs, dico_protocoles, routeur):
     # Configuration des interfaces
     for interface, ip in valeurs.items():
         config.append(f"interface {interface}")
+        config.append(" no ip address")
         config.append(" ipv6 enable")
         config.append(f" ipv6 address {ip}")
-        config.append(" shutdown")
-        config.append(" no shutdown")
+        #config.append(" shutdown")
+        #config.append(" no shutdown")
         if dico_protocoles[routeur]["protocol"] == 'RIP' and interface != "loopback0":
             num_as = dico_protocoles[routeur]['AS_number']
             config.append (f" ipv6 rip RIP_AS_{num_as} enable")
