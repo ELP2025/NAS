@@ -1,5 +1,4 @@
-default.cfg
-full_conf.cfg
+*.cfg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

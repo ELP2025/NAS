@@ -1,3 +1,5 @@
+from file_dispatcher import FileDispatcher
+from telnet import TelnetConfigurator 
 from pprint import pprint
 import ipaddress
 import argparse
@@ -18,7 +20,7 @@ def load_intent_file(filename):
 def argument_parser():
     parser = argparse.ArgumentParser(description='''Projet GNS3 2024-2025 -- Génération automatisé de configurations CISCO''')
     parser.add_argument('filename', help="Intent file describing the network that needs to be configured. YAML and JSON are supported")
-    parser.add_argument('-c', '--copy_config', action='store_true', help="Generate config files and copy them to the right GNS3 directory")
+    parser.add_argument('-c', '--copy_config', help="Generate config files and copy them to the specified GNS3 directory")
     parser.add_argument('-t', '--telnet', action='store_true', help="Automatically configures the routers using Telnet")
     return parser.parse_args()
 
@@ -203,6 +205,8 @@ if __name__ == "__main__" :
     try:
         args = argument_parser()
         data = load_intent_file(args.filename) # Loading data
+
+        if args.copy_config and args.telnet : raise Exception("You should not copy and telnet the same config file, this is nonsense.")
         
         # Getting all the IPS for all the routers (interal IP(igp) and external IP(bgp))
         as_data = dict()
@@ -228,6 +232,14 @@ if __name__ == "__main__" :
 
         for router in routers_data:
             generate_config_file(router[1:], routers_data, router_mapping, bgp_config)
-        
+
+        if args.copy_config :
+            configurator = FileDispatcher(args.copy_config)
+            configurator.copy_configs()
+
+        if args.telnet : 
+            pass 
+            #TODO : GET every router telnet port and copy the config file there
+
     except Exception as e:
         print(e)
