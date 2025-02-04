@@ -57,7 +57,7 @@ def generate_routers_loopback_ips(routers, as_prefix):
     """Returns the loopback adress for each router"""
     if not as_prefix : raise Exception(f'Intent file error : at least one AS does not have an IPv6 Prefix')
     for router in routers:
-        routers[router].update({'loopback0' : f'{as_prefix[:-1]}{str(router)[1:]}::{str(router)[1:]}/128'})
+        routers[router].update({'loopback0' : f'{as_prefix[:-1]}9999:{str(router)[1:]}::{str(router)[1:]}/128'})
     return routers
 
 def get_routers_internal_interface_ip(as_data):
