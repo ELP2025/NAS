@@ -57,7 +57,7 @@ def generate_routers_loopback_ips(routers, as_prefix):
     """Returns the loopback adress for each router"""
     if not as_prefix : raise Exception(f'Intent file error : at least one AS does not have an IPv6 Prefix')
     for router in routers:
-        routers[router].update({'loopback0' : f'{as_prefix[:-1]}9999:{str(router)[1:]}::{str(router)[1:]}/128'})
+        routers[router].update({'Loopback0' : f'{as_prefix[:-1]}9999:{str(router)[1:]}::{str(router)[1:]}/128'})
     return routers
 
 def get_router_loopback_ip(router, as_prefix):
@@ -181,7 +181,7 @@ def config_interfaces(valeurs, dico_protocoles, routeur):
 
     return "\n".join(config)
 
-def bgp_add(bgp_config, num):
+def bgp_add(bgp_config, num, router_mapping):
     """
     Génère la configuration BGP pour un routeur Cisco.
 
@@ -190,15 +190,17 @@ def bgp_add(bgp_config, num):
     :return: Chaîne de texte représentant la configuration BGP
     """
     config = []
-    
     # Configuration du BGP
-    config.append(f"router bgp {bgp_config['AS']}")
+    config.append(f"router bgp {router_mapping[f"R{num}"]["AS_number"]}")
     config.append(f" bgp router-id {num}.{num}.{num}.{num}")
     config.append(" bgp log-neighbor-changes\n no bgp default ipv4-unicast")
-    for neighbor in bgp_config["neighbors"].values():
+    for neighbor in bgp_config[f"R{num}"]:
         config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
+        if neighbor[2]:
+            config.append(f" neighbor {neighbor[0]} update-source Loopback0")
+
     config.append(" !\n address-family ipv4\n exit-address-family\n !\n address-family ipv6")
-    for neighbor in bgp_config["neighbors"].values():
+    for neighbor in bgp_config[f"R{num}"]:
         config.append(f"  neighbor {neighbor[0]} activate")
     config.append(" exit-address-family")
     config.append("!")
@@ -218,12 +220,12 @@ def add_protocol(num, dico_protocoles):
         config.append (f"router-id {num}.{num}.{num}.{num}")
     return "\n".join(config)
 
-def generate_config_file(hostname, interface_data, router_mapping, bgp_data):
-    file_name = f"i{hostname}_startup_config.cfg"
+def generate_config_file(hostname, interface_data, router_mapping, routers_bgp):
+    file_name = f"i{hostname}_startup-config.cfg"
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(hostname))
         file.write("\n" + config_interfaces(interface_data, router_mapping, hostname))
-        file.write("\n" + bgp_add(bgp_data, hostname))
+        file.write("\n" + bgp_add(routers_bgp, hostname, router_mapping))
         file.write("\n" + add_protocol(hostname, router_mapping[f"R{hostname}"]))
     print(f"Configuration pour le router {hostname} terminée")
 # END OF CONFIG
@@ -252,16 +254,9 @@ if __name__ == "__main__" :
         routers_bgp = generate_external_neighbors(routers_bgp,routers_data, data.get("BGP_connections", {}))
         # Mapping each router to it's AS and IGP
         router_mapping = map_routers_to_as_and_protocol(data)
-        bgp_config = {
-                "AS": 2000,
-                "neighbors": {
-                    "neighbor": ["2000:200:200:56::1", "2000"],
-                    "neighbor_2": ["2000:200:200:67::1", "2000"]
-                }
-            }
 
         for router in routers_data:
-            generate_config_file(router[1:], routers_data, router_mapping, bgp_config)
+            generate_config_file(router[1:], routers_data, router_mapping, routers_bgp)
 
         if args.copy_config :
             configurator = FileDispatcher(args.copy_config)

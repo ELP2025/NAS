@@ -17,7 +17,7 @@ class FileDispatcher():
             print(f" {len(gns3_configs)} fichiers de configuration trouvés.")
 
             print("\n Remplacement des fichiers...")
-            replace_configs(gns3_configs, self.custom_config_directory)
+            self.replace_configs(gns3_configs, self.custom_config_directory)
 
     def find_gns3_config_files(self, gns3_project_dir):
         """
