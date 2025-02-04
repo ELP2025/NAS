@@ -60,6 +60,33 @@ def generate_routers_loopback_ips(routers, as_prefix):
         routers[router].update({'loopback0' : f'{as_prefix[:-1]}9999:{str(router)[1:]}::{str(router)[1:]}/128'})
     return routers
 
+def get_router_loopback_ip(router, as_prefix):
+    return f'{as_prefix[:-1]}9999:{str(router)[1:]}::{str(router)[1:]}'
+
+def generate_routers_neighbors(routers, prefix, as_number):
+    result = dict()
+
+    for r in routers : 
+        router = r['hostname']
+        result[router] = []
+        for n in routers :
+            neighbor = n['hostname']
+            if neighbor == router :  continue
+            result[router].append((get_router_loopback_ip(neighbor, prefix), as_number, True))
+    return result
+
+def generate_external_neighbors(neighbors, routers_data, bgp_connections):
+    for connection in bgp_connections:
+        as_1 = int(connection['AS_1'])
+        as_2 = int(connection['AS_2'])
+        hostname_1 = connection['AS_1_router_hostname']
+        hostname_2 = connection['AS_2_router_hostname']
+        first_ip = routers_data[hostname_1][connection['AS_1_router_interface']]
+        second_ip = routers_data[hostname_2][connection['AS_2_router_interface']]
+        neighbors[hostname_1].append((second_ip, as_2, False))
+        neighbors[hostname_2].append((first_ip, as_1, False))
+    return neighbors
+
 def get_routers_internal_interface_ip(as_data):
     """Returns routers ips for each interface"""
     routers = {r.get('hostname', ''):{} for r in as_data.get('routers', {})} #Getting all the routers in the AS
@@ -113,7 +140,7 @@ def generate_base_cisco_config(hostname):
     """
     Génère une configuration de base pour un routeur Cisco.
 
-    :param hostname: Nom d'hôte du routeur (hostname)
+    :param hostname: Nom d'hôte du routeur (hostnhttps://github.com/ELP2025/ELP2025ame)
     :return: Chaîne de texte représentant la configuration de base
     """
     config = []
@@ -211,15 +238,18 @@ if __name__ == "__main__" :
         # Getting all the IPS for all the routers (interal IP(igp) and external IP(bgp))
         as_data = dict()
         routers_data = dict()
+        routers_bgp = dict()
         subnets_iters = dict()
         for as_name_string in [key for key, _ in data.items() if "AS" in key]:
             as_name = int(re.findall(r'\d+', as_name_string)[0])
             as_data[as_name] = get_as_data(data, as_name)
+            routers_bgp.update(generate_routers_neighbors(as_data[as_name]['routers'], as_data[as_name]['IPv6_prefix'], as_data[as_name]['number']))
             routers_data_as, subnets_iter_as = get_routers_internal_interface_ip(as_data[as_name])
             routers_data.update(routers_data_as)
             subnets_iters[as_data[as_name].get('number')] = subnets_iter_as
         routers_data = get_routers_external_interfaces_ip(data.get("BGP_connections", {}), routers_data, subnets_iters)
- 
+        
+        routers_bgp = generate_external_neighbors(routers_bgp,routers_data, data.get("BGP_connections", {}))
         # Mapping each router to it's AS and IGP
         router_mapping = map_routers_to_as_and_protocol(data)
         bgp_config = {
