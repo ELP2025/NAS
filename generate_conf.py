@@ -48,7 +48,7 @@ def map_routers_to_as_and_protocol(data):
             protocol = as_entry.get('IGP')
             for router in as_entry.get('routers', []):
                 router_name = router['hostname']
-                router_mapping[router_name] = {"AS_number": as_number, "protocol": protocol}
+                router_mapping[router_name] = {"AS_number": as_number, "protocol": protocol, "telnet_port" : int(router["telnet_port"])}
     return router_mapping
 # END OF GETTER FUNCTIONS
 
@@ -291,8 +291,16 @@ if __name__ == "__main__" :
             configurator = FileDispatcher(args.copy_config)
             configurator.copy_configs()
 
-        if args.telnet : 
-            pass 
+        if args.telnet :
+            processes = []
+            for router, infos in router_mapping.items():
+                p = TelnetConfigurator('localhost', infos["telnet_port"], f"i{router[1:]}_startup-config.cfg")
+                p.start()
+                processes.append(p)
+
+            for p in processes:
+                    p.join()
+
             #TODO : GET every router telnet port and copy the config file there
 
     except Exception as e:
