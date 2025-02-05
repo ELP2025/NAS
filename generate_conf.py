@@ -50,6 +50,30 @@ def map_routers_to_as_and_protocol(data):
                 router_name = router['hostname']
                 router_mapping[router_name] = {"AS_number": as_number, "protocol": protocol, "telnet_port" : int(router["telnet_port"])}
     return router_mapping
+
+def get_dico_network (data, router_map):
+    dico_networks = {}
+    for as_id, val in data.items():
+        if as_id != "BGP_connections":
+            for liaison in val[0]['internal_connections']:
+                dico_networks [(data[as_id][0]['number'], (liaison['first_peer_hostname'],liaison['second_peer_hostname']))] = liaison['first_peer_interface']
+    for key, value in dico_networks.items():
+        router1, router2 = key[1]
+        dico_networks[key] = router_map[router1][value][:-4] + router_map[router1][value][-3:]
+    dico_networks[(1000, ("R0", "R0"))] = "1000:100:100"
+    dico_networks[(2000, ("R0", "R0"))] = "2000:200:200"
+    return (dico_networks)
+        
+        
+def get_border_routers(bgp_data):
+    result = []
+    for connection in bgp_data:
+        result.append((connection['AS_1_router_hostname'], connection['AS_1_router_interface']))
+        result.append((connection['AS_2_router_hostname'], connection['AS_2_router_interface']))
+
+    return result
+
+        
 # END OF GETTER FUNCTIONS
 
 # START OF NETWORK ADDRESSING
@@ -185,7 +209,7 @@ def config_interfaces(valeurs, dico_protocoles, routeur):
 
     return "\n".join(config)
 
-def bgp_add(bgp_config, num, router_mapping):
+def bgp_add(bgp_config, num, router_mapping, network, border_routers):
     """
     Génère la configuration BGP pour un routeur Cisco.
 
@@ -207,6 +231,11 @@ def bgp_add(bgp_config, num, router_mapping):
             if neighbor[3] == "peer" or neighbor[3] ==  "provider":
                 config.append(f" neighbor {neighbor[0]} route-map ONLY_CUST out")
     config.append(" !\n address-family ipv4\n exit-address-family\n !\n address-family ipv6")
+    for router in border_routers:
+        if f"R{num}" in router[0]:
+            for key, ip_value in network.items():
+                if key[0] ==  router_mapping[f"R{num}"]["AS_number"]:
+                    config.append(f"  network {ip_value}")
     for neighbor in bgp_config[f"R{num}"]:
         config.append(f"  neighbor {neighbor[0]} next-hop-self")
         config.append(f"  neighbor {neighbor[0]} activate")
@@ -215,18 +244,23 @@ def bgp_add(bgp_config, num, router_mapping):
     config.append("!")
     return "\n".join(config)
 
-def add_protocol(num, dico_protocoles):
+def add_protocol(num, dico_protocoles, border_routers):
     config = []
     
     #configuration du protocole routeur*
     if dico_protocoles["protocol"] == 'RIP':
         num_as = dico_protocoles['AS_number']
-        config.append (f"ipv6 router rip RIP_AS_{num_as}")
-        config.append (" redistribute connected")
+        config.append(f"ipv6 router rip RIP_AS_{num_as}")
+        config.append(" redistribute connected")
     elif dico_protocoles["protocol"] == 'OSPF':
         num_as = dico_protocoles['AS_number']
-        config.append (f"ipv6 router ospf {num_as}")
-        config.append (f"router-id {num}.{num}.{num}.{num}")
+        config.append(f"ipv6 router ospf {num_as}")
+        config.append(f" router-id {num}.{num}.{num}.{num}")
+        for router in border_routers:
+            if f"R{num}" == router[0]:
+                config.append(f" passive-interface {router[1]}")
+                
+        
     return "\n".join(config)
 
 def generate_policies(as_number):
@@ -248,14 +282,14 @@ def generate_policies(as_number):
     return "\n".join(config)
 
 
-def generate_config_file(hostname, interface_data, router_mapping, routers_bgp):
+def generate_config_file(hostname, interface_data, router_mapping, routers_bgp, router_network, border_routers):
     file_name = f"i{hostname}_startup-config.cfg"
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(hostname))
         file.write("\n" + config_interfaces(interface_data, router_mapping, hostname))
         file.write("\n" + generate_policies(router_mapping[f"R{hostname}"]["AS_number"]))
-        file.write("\n" + bgp_add(routers_bgp, hostname, router_mapping))
-        file.write("\n" + add_protocol(hostname, router_mapping[f"R{hostname}"]))
+        file.write("\n" + bgp_add(routers_bgp, hostname, router_mapping, router_network, border_routers))
+        file.write("\n" + add_protocol(hostname, router_mapping[f"R{hostname}"], border_routers))
     print(f"Configuration pour le router {hostname} terminée")
 # END OF CONFIG
 
@@ -283,9 +317,11 @@ if __name__ == "__main__" :
         routers_bgp = generate_external_neighbors(routers_bgp,routers_data, data.get("BGP_connections", {}))
         # Mapping each router to it's AS and IGP
         router_mapping = map_routers_to_as_and_protocol(data)
+        router_network = get_dico_network(data, routers_data)
+        border_routers = get_border_routers(data.get('BGP_connections'))
 
         for router in routers_data:
-            generate_config_file(router[1:], routers_data, router_mapping, routers_bgp)
+            generate_config_file(router[1:], routers_data, router_mapping, routers_bgp, router_network, border_routers)
 
         if args.copy_config :
             configurator = FileDispatcher(args.copy_config)
