@@ -105,8 +105,8 @@ def generate_external_neighbors(neighbors, routers_data, bgp_connections):
         as_2 = int(connection['AS_2'])
         hostname_1 = connection['AS_1_router_hostname']
         hostname_2 = connection['AS_2_router_hostname']
-        first_ip = routers_data[hostname_1][connection['AS_1_router_interface']]
-        second_ip = routers_data[hostname_2][connection['AS_2_router_interface']]
+        first_ip = routers_data[hostname_1][connection['AS_1_router_interface']][:-3]
+        second_ip = routers_data[hostname_2][connection['AS_2_router_interface']][:-3]
         relation = connection["relation"]
         neighbors[hostname_1].append((second_ip, as_2, False, relation))
         if relation == "peer" :
@@ -223,6 +223,7 @@ def bgp_add(bgp_config, num, router_mapping, network, border_routers):
     config.append(f" bgp router-id {num}.{num}.{num}.{num}")
     config.append(" bgp log-neighbor-changes\n no bgp default ipv4-unicast")
     for neighbor in bgp_config[f"R{num}"]:
+        print (neighbor)
         config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
         if neighbor[2]:
             config.append(f" neighbor {neighbor[0]} update-source Loopback0")
@@ -287,7 +288,7 @@ def generate_config_file(hostname, interface_data, router_mapping, routers_bgp, 
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(hostname))
         file.write("\n" + config_interfaces(interface_data, router_mapping, hostname))
-        file.write("\n" + generate_policies(router_mapping[f"R{hostname}"]["AS_number"]))
+        #file.write("\n" + generate_policies(router_mapping[f"R{hostname}"]["AS_number"]))
         file.write("\n" + bgp_add(routers_bgp, hostname, router_mapping, router_network, border_routers))
         file.write("\n" + add_protocol(hostname, router_mapping[f"R{hostname}"], border_routers))
     print(f"Configuration pour le router {hostname} terminée")
