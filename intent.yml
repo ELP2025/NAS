@@ -132,18 +132,21 @@ AS2:
     second_peer_interface: GigabitEthernet4/0
 
 BGP_connections:
+  # relation are from one to the other.
+  # i.e if we set client in our first relation, it means that AS_1 is client of AS_2
+  # Available options are peer, client, provider
 - AS_1: '1000'
   AS_1_router_hostname : 'R4'
   AS_1_router_interface : 'GigabitEthernet2/0'
   AS_2: '2000'
   AS_2_router_hostname : 'R5'
   AS_2_router_interface : 'GigabitEthernet2/0'
-  relation: peer/client/ISP/...
+  relation: 'peer'
 - AS_1: '1000'
   AS_1_router_hostname : 'R12'
   AS_1_router_interface : 'GigabitEthernet1/0'
   AS_2: '2000'
   AS_2_router_hostname : 'R11'
   AS_2_router_interface : 'GigabitEthernet1/0'
-  relation: peer/client/ISP/...
+  relation: 'provider'
 

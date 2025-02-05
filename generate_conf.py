@@ -83,8 +83,12 @@ def generate_external_neighbors(neighbors, routers_data, bgp_connections):
         hostname_2 = connection['AS_2_router_hostname']
         first_ip = routers_data[hostname_1][connection['AS_1_router_interface']]
         second_ip = routers_data[hostname_2][connection['AS_2_router_interface']]
-        neighbors[hostname_1].append((second_ip, as_2, False))
-        neighbors[hostname_2].append((first_ip, as_1, False))
+        relation = connection["relation"]
+        neighbors[hostname_1].append((second_ip, as_2, False, relation))
+        if relation == "peer" :
+            neighbors[hostname_2].append((first_ip, as_1, False, relation))
+        else : 
+            neighbors[hostname_2].append((first_ip, as_1, False, "client" if relation == "provider" else "provider"))
     return neighbors
 
 def get_routers_internal_interface_ip(as_data):
@@ -198,10 +202,15 @@ def bgp_add(bgp_config, num, router_mapping):
         config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
         if neighbor[2]:
             config.append(f" neighbor {neighbor[0]} update-source Loopback0")
-
+        else :
+            config.append(f" neighbor {neighbor[0]} route-map {neighbor[3].upper()} in")
+            if neighbor[3] == "peer" or neighbor[3] ==  "provider":
+                config.append(f" neighbor {neighbor[0]} route-map ONLY_CUST out")
     config.append(" !\n address-family ipv4\n exit-address-family\n !\n address-family ipv6")
     for neighbor in bgp_config[f"R{num}"]:
+        config.append(f"  neighbor {neighbor[0]} next-hop-self")
         config.append(f"  neighbor {neighbor[0]} activate")
+        config.append(f"  neighbor {neighbor[0]} send-community both")
     config.append(" exit-address-family")
     config.append("!")
     return "\n".join(config)
@@ -220,11 +229,31 @@ def add_protocol(num, dico_protocoles):
         config.append (f"router-id {num}.{num}.{num}.{num}")
     return "\n".join(config)
 
+def generate_policies(as_number):
+    config = []
+
+    policies = [("CLIENT", "200", f"{as_number}:200"), ("PEER", "150", f"{as_number}:150"), ("PROVIDER", "100", f"{as_number}:100")]
+    config.append("ip bgp-community new-format")
+    for policy in policies:
+        config.append(f"route-map {policy[0]} permit 10")
+        config.append(f"    set community {policy[2]} additive")
+        config.append(f"    set local-preference {policy[1]}")
+
+    config.append(f"ip community-list standard BLOCK permit {as_number}:150")
+    config.append(f"ip community-list standard BLOCK permit {as_number}:100")
+    config.append("route-map ONLY_CUST deny 10")
+    config.append("  match community BLOCK")
+    config.append("route-map ONLY_CUST permit 20")
+    config.append("!")
+    return "\n".join(config)
+
+
 def generate_config_file(hostname, interface_data, router_mapping, routers_bgp):
     file_name = f"i{hostname}_startup-config.cfg"
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(hostname))
         file.write("\n" + config_interfaces(interface_data, router_mapping, hostname))
+        file.write("\n" + generate_policies(router_mapping[f"R{hostname}"]["AS_number"]))
         file.write("\n" + bgp_add(routers_bgp, hostname, router_mapping))
         file.write("\n" + add_protocol(hostname, router_mapping[f"R{hostname}"]))
     print(f"Configuration pour le router {hostname} terminée")
