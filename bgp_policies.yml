@@ -131,8 +131,8 @@ AS2:
     second_peer_hostname: R11
     second_peer_interface: GigabitEthernet4/0
 
-AS_3:
-  - number: '3000'
+AS3:
+- number: '3000'
   IPv6_prefix: '3000:300:300::'
   IPv6_mask: '48'
   IGP: OSPF
@@ -154,7 +154,7 @@ AS_3:
     second_peer_interface: GigabitEthernet2/0
  
 
-AS_4:
+AS4:
 - number: '4000'
   IPv6_prefix: '4000:400:400::'
   IPv6_mask: '48'

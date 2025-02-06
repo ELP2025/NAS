@@ -288,7 +288,7 @@ def generate_config_file(hostname, interface_data, router_mapping, routers_bgp, 
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(hostname))
         file.write("\n" + config_interfaces(interface_data, router_mapping, hostname))
-        #file.write("\n" + generate_policies(router_mapping[f"R{hostname}"]["AS_number"]))
+        file.write("\n" + generate_policies(router_mapping[f"R{hostname}"]["AS_number"]))
         file.write("\n" + bgp_add(routers_bgp, hostname, router_mapping, router_network, border_routers))
         file.write("\n" + add_protocol(hostname, router_mapping[f"R{hostname}"], border_routers))
     print(f"Configuration pour le router {hostname} terminée")
