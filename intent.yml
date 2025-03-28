@@ -1,152 +1,100 @@
 ---
 AS1:
 - number: '1000'
-  IPv6_prefix: '1000:100:100::'
-  IPv6_mask: '48'
-  IGP: RIP
+  IPv4_prefix: '100.50.0.0'
+  IPv4_mask: '16'
+  IGP: OSPF
   routers:
-  - hostname: R1
+  - hostname: PE1
     telnet_port: 3001
-  - hostname: R2
+  - hostname: PE2
     telnet_port: 3002
-  - hostname: R3
+  - hostname: P1
     telnet_port: 3003
-  - hostname: R4
+  - hostname: P2
     telnet_port: 3004
-  - hostname: R12
-    telnet_port: 3012
-  - hostname: R13
-    telnet_port: 3013
-  - hostname: R14
-    telnet_port: 3014
   internal_connections:
-  - first_peer_hostname: R1
+  - first_peer_hostname: PE1
     first_peer_interface: GigabitEthernet1/0
-    second_peer_hostname: R2
+    second_peer_hostname: P1
     second_peer_interface: GigabitEthernet1/0
-  - first_peer_hostname: R2
+  - first_peer_hostname: P1
     first_peer_interface: GigabitEthernet2/0
-    second_peer_hostname: R3
+    second_peer_hostname: P2
     second_peer_interface: GigabitEthernet2/0
-  - first_peer_hostname: R3
+  - first_peer_hostname: P2
     first_peer_interface: GigabitEthernet1/0
-    second_peer_hostname: R4
+    second_peer_hostname: PE2
     second_peer_interface: GigabitEthernet1/0
-
-  - first_peer_hostname: R12
-    first_peer_interface: GigabitEthernet2/0
-    second_peer_hostname: R13
-    second_peer_interface: GigabitEthernet2/0
-  - first_peer_hostname: R13
-    first_peer_interface: GigabitEthernet1/0
-    second_peer_hostname: R14
-    second_peer_interface: GigabitEthernet1/0
-  - first_peer_hostname: R14
-    first_peer_interface: GigabitEthernet2/0
-    second_peer_hostname: R1
-    second_peer_interface: GigabitEthernet2/0
-  
-  - first_peer_hostname: R2
-    first_peer_interface: GigabitEthernet3/0
-    second_peer_hostname: R14
-    second_peer_interface: GigabitEthernet3/0
-  - first_peer_hostname: R3
-    first_peer_interface: GigabitEthernet3/0
-    second_peer_hostname: R13
-    second_peer_interface: GigabitEthernet3/0
-
-  - first_peer_hostname: R3
-    first_peer_interface: GigabitEthernet4/0
-    second_peer_hostname: R12
-    second_peer_interface: GigabitEthernet4/0
-  - first_peer_hostname: R4
-    first_peer_interface: GigabitEthernet4/0
-    second_peer_hostname: R13
-    second_peer_interface: GigabitEthernet4/0
-
-
 
 
 AS2:
 - number: '2000'
-  IPv6_prefix: '2000:200:200::'
-  IPv6_mask: '48'
+  IPv4_prefix: '100.52.0.0'
+  IPv4_mask: '16'
   IGP: OSPF
   routers:
-  - hostname: R5
+  - hostname: CE1
     telnet_port: 3005
-  - hostname: R6
+  - hostname: CE2
     telnet_port: 3006
-  - hostname: R7
+
+
+AS3:
+- number: '3000'
+  IPv4_prefix: '100.53.0.0'
+  IPv4_mask: '16'
+  IGP: OSPF
+  routers:
+  - hostname: CE3
     telnet_port: 3007
-  - hostname: R8
+
+
+AS4:
+- number: '4000'
+  IPv4_prefix: '100.54.0.0'
+  IPv4_mask: '16'
+  IGP: OSPF
+  routers:
+  - hostname: CE4
     telnet_port: 3008
-  - hostname: R9
-    telnet_port: 3009
-  - hostname: R10
-    telnet_port: 3010
-  - hostname: R11
-    telnet_port: 3011
-  internal_connections:
-  - first_peer_hostname: R5
-    first_peer_interface: GigabitEthernet1/0
-    second_peer_hostname: R6
-    second_peer_interface: GigabitEthernet1/0
-  - first_peer_hostname: R6
-    first_peer_interface: GigabitEthernet2/0
-    second_peer_hostname: R7
-    second_peer_interface: GigabitEthernet2/0
-  - first_peer_hostname: R7
-    first_peer_interface: GigabitEthernet1/0
-    second_peer_hostname: R8
-    second_peer_interface: GigabitEthernet1/0
-  - first_peer_hostname: R8
-    first_peer_interface: GigabitEthernet2/0
-    second_peer_hostname: R9
-    second_peer_interface: GigabitEthernet2/0
-  - first_peer_hostname: R9
-    first_peer_interface: GigabitEthernet1/0
-    second_peer_hostname: R10
-    second_peer_interface: GigabitEthernet1/0
-  - first_peer_hostname: R10
-    first_peer_interface: GigabitEthernet2/0
-    second_peer_hostname: R11
-    second_peer_interface: GigabitEthernet2/0
 
-  - first_peer_hostname: R6
-    first_peer_interface: GigabitEthernet3/0
-    second_peer_hostname: R10
-    second_peer_interface: GigabitEthernet3/0
-  - first_peer_hostname: R7
-    first_peer_interface: GigabitEthernet3/0
-    second_peer_hostname: R9
-    second_peer_interface: GigabitEthernet3/0
-
-  - first_peer_hostname: R5
-    first_peer_interface: GigabitEthernet4/0
-    second_peer_hostname: R10
-    second_peer_interface: GigabitEthernet4/0
-  - first_peer_hostname: R6
-    first_peer_interface: GigabitEthernet4/0
-    second_peer_hostname: R11
-    second_peer_interface: GigabitEthernet4/0
-
-BGP_connections:
+AS_connections:
   # relation are from one to the other.
   # i.e if we set client in our first relation, it means that AS_1 is client of AS_2
   # Available options are peer, client, provider
 - AS_1: '1000'
-  AS_1_router_hostname : 'R4'
-  AS_1_router_interface : 'GigabitEthernet2/0'
+  AS_1_router_hostname: 'PE1'
+  AS_1_router_interface: 'GigabitEthernet2/0'
   AS_2: '2000'
-  AS_2_router_hostname : 'R5'
-  AS_2_router_interface : 'GigabitEthernet2/0'
-  relation: 'peer'
+  AS_2_router_hostname: 'CE1'
+  AS_2_router_interface: 'GigabitEthernet2/0'
+  connexion:
+  - type: 'VPN'
 - AS_1: '1000'
-  AS_1_router_hostname : 'R12'
-  AS_1_router_interface : 'GigabitEthernet1/0'
+  AS_1_router_hostname: 'PE2'
+  AS_1_router_interface: 'GigabitEthernet2/0'
   AS_2: '2000'
-  AS_2_router_hostname : 'R11'
-  AS_2_router_interface : 'GigabitEthernet1/0'
-  relation: 'provider'
-
+  AS_2_router_hostname: 'CE2'
+  AS_2_router_interface: 'GigabitEthernet2/0'
+  connexion:
+  - type: 'VPN'
+  #Voir plus tard
+- AS_1: '1000'
+  AS_1_router_hostname: 'PE1'
+  AS_1_router_interface: 'GigabitEthernet3/0'
+  AS_2: '3000'
+  AS_2_router_hostname: 'CE3'
+  AS_2_router_interface: 'GigabitEthernet3/0'
+  connexion:
+  - type: 'BGP'
+  - relation: 'provider'
+- AS_1: '1000'
+  AS_1_router_hostname: 'PE2'
+  AS_1_router_interface: 'GigabitEthernet3/0'
+  AS_2: '4000'
+  AS_2_router_hostname: 'CE4'
+  AS_2_router_interface: 'GigabitEthernet3/0'
+  connexion:
+  - type: 'BGP'
+  - relation: 'provider'
