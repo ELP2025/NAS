@@ -30,8 +30,8 @@ def get_as_data(data, as_number):
 
 def get_all_as_subnets(as_data):
     """Function that returns all the available subnets for an AS"""
-    network = ipaddress.ip_network(f"{as_data.get('IPv6_prefix')}/{as_data.get('IPv6_mask')}")
-    networks = iter(network.subnets(new_prefix=64))
+    network = ipaddress.ip_network(f"{as_data.get('IPv4_prefix')}/{as_data.get('IPv4_mask')}")
+    networks = iter(network.subnets(new_prefix=30))
     return networks
 
 def map_routers_to_as_and_protocol(data):
@@ -60,8 +60,6 @@ def get_dico_network (data, router_map):
     for key, value in dico_networks.items():
         router1, router2 = key[1]
         dico_networks[key] = router_map[router1][value][:-4] + router_map[router1][value][-3:]
-    dico_networks[(1000, ("R0", "R0"))] = "1000:100:100"
-    dico_networks[(2000, ("R0", "R0"))] = "2000:200:200"
     return (dico_networks)
         
         
@@ -77,13 +75,16 @@ def get_border_routers(bgp_data):
 # END OF GETTER FUNCTIONS
 
 # START OF NETWORK ADDRESSING
+# TODO : YES YES YES FIX THIS
 def generate_routers_loopback_ips(routers, as_prefix):
     """Returns the loopback adress for each router"""
-    if not as_prefix : raise Exception(f'Intent file error : at least one AS does not have an IPv6 Prefix')
+    if not as_prefix : raise Exception(f'Intent file error : at least one AS does not have an IPv4 Prefix')
     for router in routers:
-        routers[router].update({'Loopback0' : f'{as_prefix[:-1]}9999:{str(router)[1:]}::{str(router)[1:]}/128'})
+        routers[router].update({'Loopback0' : f'{as_prefix[:-1]}9999:{str(router)[1:]}::{str(router)[1:]}/32'})
     return routers
 
+
+# TODO : FIX FIX
 def get_router_loopback_ip(router, as_prefix):
     return f'{as_prefix[:-1]}9999:{str(router)[1:]}::{str(router)[1:]}'
 
@@ -134,12 +135,12 @@ def get_routers_internal_interface_ip(as_data):
        
         subnets_ip = subnet.hosts()
 
-        routers[c.get('first_peer_hostname', '')].update({c.get('first_peer_interface', '') : str(next(subnets_ip))+'/64'})
-        routers[c.get('second_peer_hostname', '')].update({c.get('second_peer_interface', '') : str(next(subnets_ip))+'/64'})
+        routers[c.get('first_peer_hostname', '')].update({c.get('first_peer_interface', '') : str(next(subnets_ip))+'/30'})
+        routers[c.get('second_peer_hostname', '')].update({c.get('second_peer_interface', '') : str(next(subnets_ip))+'/30'})
         
 
         subnet = next(subnets)
-    routers = generate_routers_loopback_ips(routers, as_data.get('IPv6_prefix'))
+    routers = generate_routers_loopback_ips(routers, as_data.get('IPv4_prefix'))
     return routers, subnets
 
 def get_routers_external_interfaces_ip(external_connections_data, routers, iters):
@@ -158,8 +159,8 @@ def get_routers_external_interfaces_ip(external_connections_data, routers, iters
 
         subnet_ip = subnet.hosts()
 
-        routers.get(first_peer, {}).update({first_interface : str(next(subnet_ip))+'/64'})
-        routers.get(second_peer, {}).update({second_interface : str(next(subnet_ip))+'/64'})
+        routers.get(first_peer, {}).update({first_interface : str(next(subnet_ip))+'/32'})
+        routers.get(second_peer, {}).update({second_interface : str(next(subnet_ip))+'/32'})
     return routers   
 # END OF NETWORK ADDRESSING
 
@@ -179,7 +180,6 @@ def generate_base_cisco_config(hostname):
     config.append("!")
     config.append(f"hostname R{hostname}")
     config.append("!")
-    config.append("ipv6 unicast-routing")
     config.append("!")
     return "\n".join(config)
 
@@ -196,15 +196,13 @@ def config_interfaces(valeurs, dico_protocoles, routeur):
 # Configuration des interfaces
     for interface, ip in valeurs[full_name].items():
         config.append(f"interface {interface}")
-        config.append(" no ip address")
-        config.append(" ipv6 enable")
-        config.append(f" ipv6 address {ip}")
+        config.append(f" ip address {ip}")
         if dico_protocoles[full_name]["protocol"] == 'RIP':
             num_as = dico_protocoles[full_name]['AS_number']
-            config.append (f" ipv6 rip RIP_AS_{num_as} enable")
+            config.append (f" ip rip RIP_AS_{num_as} enable")
         elif dico_protocoles[full_name]["protocol"] == 'OSPF':
             num_as = dico_protocoles[full_name]['AS_number']
-            config.append (f" ipv6 ospf {num_as} area 0")
+            config.append (f" ip ospf {num_as} area 0")
         config.append("!")
 
     return "\n".join(config)
@@ -221,7 +219,7 @@ def bgp_add(bgp_config, num, router_mapping, network, border_routers):
     # Configuration du BGP
     config.append(f"router bgp {router_mapping[f"R{num}"]["AS_number"]}")
     config.append(f" bgp router-id {num}.{num}.{num}.{num}")
-    config.append(" bgp log-neighbor-changes\n no bgp default ipv4-unicast")
+    config.append(" bgp log-neighbor-changes")
     for neighbor in bgp_config[f"R{num}"]:
         print (neighbor)
         config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
@@ -229,9 +227,7 @@ def bgp_add(bgp_config, num, router_mapping, network, border_routers):
             config.append(f" neighbor {neighbor[0]} update-source Loopback0")
         else :
             config.append(f" neighbor {neighbor[0]} route-map {neighbor[3].upper()} in")
-            if neighbor[3] == "peer" or neighbor[3] ==  "provider":
-                config.append(f" neighbor {neighbor[0]} route-map ONLY_CUST out")
-    config.append(" !\n address-family ipv4\n exit-address-family\n !\n address-family ipv6")
+    config.append(" !\n address-family ipv4")
     for router in border_routers:
         if f"R{num}" in router[0]:
             for key, ip_value in network.items():
@@ -251,11 +247,11 @@ def add_protocol(num, dico_protocoles, border_routers):
     #configuration du protocole routeur*
     if dico_protocoles["protocol"] == 'RIP':
         num_as = dico_protocoles['AS_number']
-        config.append(f"ipv6 router rip RIP_AS_{num_as}")
+        config.append(f"ip router rip RIP_AS_{num_as}")
         config.append(" redistribute connected")
     elif dico_protocoles["protocol"] == 'OSPF':
         num_as = dico_protocoles['AS_number']
-        config.append(f"ipv6 router ospf {num_as}")
+        config.append(f"ip router ospf {num_as}")
         config.append(f" router-id {num}.{num}.{num}.{num}")
         for router in border_routers:
             if f"R{num}" == router[0]:
@@ -264,31 +260,11 @@ def add_protocol(num, dico_protocoles, border_routers):
         
     return "\n".join(config)
 
-def generate_policies(as_number):
-    config = []
-
-    policies = [("CLIENT", "200", f"{as_number}:200"), ("PEER", "150", f"{as_number}:150"), ("PROVIDER", "100", f"{as_number}:100")]
-    config.append("ip bgp-community new-format")
-    for policy in policies:
-        config.append(f"route-map {policy[0]} permit 10")
-        config.append(f"    set community {policy[2]} additive")
-        config.append(f"    set local-preference {policy[1]}")
-
-    config.append(f"ip community-list standard BLOCK permit {as_number}:150")
-    config.append(f"ip community-list standard BLOCK permit {as_number}:100")
-    config.append("route-map ONLY_CUST deny 10")
-    config.append("  match community BLOCK")
-    config.append("route-map ONLY_CUST permit 20")
-    config.append("!")
-    return "\n".join(config)
-
-
 def generate_config_file(hostname, interface_data, router_mapping, routers_bgp, router_network, border_routers):
     file_name = f"i{hostname}_startup-config.cfg"
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(hostname))
         file.write("\n" + config_interfaces(interface_data, router_mapping, hostname))
-        file.write("\n" + generate_policies(router_mapping[f"R{hostname}"]["AS_number"]))
         file.write("\n" + bgp_add(routers_bgp, hostname, router_mapping, router_network, border_routers))
         file.write("\n" + add_protocol(hostname, router_mapping[f"R{hostname}"], border_routers))
     print(f"Configuration pour le router {hostname} terminée")
@@ -309,7 +285,7 @@ if __name__ == "__main__" :
         for as_name_string in [key for key, _ in data.items() if "AS" in key]:
             as_name = int(re.findall(r'\d+', as_name_string)[0])
             as_data[as_name] = get_as_data(data, as_name)
-            routers_bgp.update(generate_routers_neighbors(as_data[as_name]['routers'], as_data[as_name]['IPv6_prefix'], as_data[as_name]['number']))
+            routers_bgp.update(generate_routers_neighbors(as_data[as_name]['routers'], as_data[as_name]['IPv4_prefix'], as_data[as_name]['number']))
             routers_data_as, subnets_iter_as = get_routers_internal_interface_ip(as_data[as_name])
             routers_data.update(routers_data_as)
             subnets_iters[as_data[as_name].get('number')] = subnets_iter_as
