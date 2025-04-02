@@ -2,8 +2,25 @@ from pprint import pprint
 import ipaddress
 import argparse
 import json
+from file_dispatcher import FileDispatcher
 import yaml
 
+# FILE INTERACTION AND USER INTERACTION
+def argument_parser():
+    parser = argparse.ArgumentParser(description='''Projet NAS 2024-2025 -- Génération automatisé de configurations CISCO avec support BGP/MPLS VPN''')
+    parser.add_argument('filename', help="Intent file describing the network that needs to be configured. YAML and JSON are supported")
+    parser.add_argument('-c', '--copy_config', help="Generate config files and copy them to the specified GNS3 directory")
+    parser.add_argument('-t', '--telnet', action='store_true', help="Automatically configures the routers using Telnet")
+    return parser.parse_args()
+
+def load_intent_file(filename):
+    """Loading the file as a Python dict object. Compatible with yaml and  json"""
+    with open(filename, 'r') as intent_file:
+        if (filename.split('.')[-1] == 'json') :
+            data = json.load(intent_file)
+        elif (filename.split('.')[-1] == 'yaml' or 'yml'):
+              data = yaml.safe_load(intent_file)
+    return data
 
 # UTILS FUNCTIONS
 def get_all_as_subnets(prefix, mask):
@@ -64,8 +81,8 @@ def get_external_ips(routers_dict, data, as_subnets):
         first_ip = str(next(subnet_ips)) +' 255.255.255.252'
         second_ip = str(next(subnet_ips)) + ' 255.255.255.252'
 
-        routers_dict[connection["AS_1_router_hostname"]][connection["AS_1_router_interface"]] = first_ip
-        routers_dict[connection["AS_2_router_hostname"]][connection["AS_2_router_interface"]] = second_ip
+        routers_dict[connection["AS_1_router_hostname"]]["interfaces"][connection["AS_1_router_interface"]] = first_ip
+        routers_dict[connection["AS_2_router_hostname"]]["interfaces"][connection["AS_2_router_interface"]] = second_ip
     
 
 def get_routers_dict(data):
@@ -80,7 +97,8 @@ def get_routers_dict(data):
 
             hostname = router.get("hostname")
             telnet_port = int(router.get("telnet_port"))
-            routers[hostname] = {"as_number" : as_number, "telnet_port" : telnet_port, "interfaces" : {}}
+            num_creation = int(router.get("num_creation"))
+            routers[hostname] = {"as_number" : as_number, "num_creation" : num_creation, "telnet_port" : telnet_port, "interfaces" : {}}
         
         as_subnets[as_number] = get_internal_ips(routers, as_data)
         get_loopback_ips(routers, as_data)
@@ -107,7 +125,7 @@ def generate_base_cisco_config(hostname):
     config.append("!")
     return "\n".join(config)
 
-def config_interfaces(valeurs, num_as, router):
+def config_interfaces(valeurs, num_as):
     """
     Génère une configuration pour les interfaces d'un routeur.
 
@@ -117,7 +135,7 @@ def config_interfaces(valeurs, num_as, router):
     config = []
     
 # Configuration des interfaces
-    for interface, ip in valeurs[router].items():
+    for interface, ip in valeurs.items():
         config.append(f"interface {interface}")
         config.append(f" ip address {ip}")
         config.append (f" ip ospf {num_as} area 0")
@@ -172,37 +190,26 @@ def add_protocol(num, num_as, border_routers):
 
 
 def generate_config_file(router, info):
-    num_as = info["num_as"]
-    num_creat = info["num_creat"]
+    num_as = info["as_number"]
+    num_creat = info["num_creation"]
     file_name = f"i{num_creat}_startup-config.cfg"
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(router))
-        file.write("\n" + config_interfaces(info["interface"], num_as, router))
-        file.write("\n" + bgp_add(info["routers_bgp"], num_creat, num_as, info["router_network"], info["border_routers"], router))
-        file.write("\n" + add_protocol(num_creat, num_as , info["border_routers"]))
+        file.write("\n" + config_interfaces(info["interfaces"], num_as))
+        #file.write("\n" + bgp_add(info["routers_bgp"], num_creat, num_as, info["router_network"], info["border_routers"], router))
+        #file.write("\n" + add_protocol(num_creat, num_as , info["border_routers"]))
     print(f"Configuration pour le router {router} terminée")
 # END OF CONFIG
-
-# FILE INTERACTION AND USER INTERACTION
-def argument_parser():
-    parser = argparse.ArgumentParser(description='''Projet NAS 2024-2025 -- Génération automatisé de configurations CISCO avec support BGP/MPLS VPN''')
-    parser.add_argument('filename', help="Intent file describing the network that needs to be configured. YAML and JSON are supported")
-    parser.add_argument('-c', '--copy_config', help="Generate config files and copy them to the specified GNS3 directory")
-    parser.add_argument('-t', '--telnet', action='store_true', help="Automatically configures the routers using Telnet")
-    return parser.parse_args()
-
-def load_intent_file(filename):
-    """Loading the file as a Python dict object. Compatible with yaml and  json"""
-    with open(filename, 'r') as intent_file:
-        if (filename.split('.')[-1] == 'json') :
-            data = json.load(intent_file)
-        elif (filename.split('.')[-1] == 'yaml' or 'yml'):
-              data = yaml.safe_load(intent_file)
-    return data
 
 
 
 if __name__ == "__main__":
         args = argument_parser()
         data = load_intent_file(args.filename)
-        print(get_routers_dict(data))
+        routers_info = get_routers_dict(data)
+        pprint(routers_info)
+        for router, info in routers_info.items():
+            generate_config_file(router, info)
+        #if args.copy_config :
+         #   configurator = FileDispatcher(args.copy_config)
+          #  configurator.copy_configs()
