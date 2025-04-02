@@ -83,6 +83,16 @@ def get_external_ips(routers_dict, data, as_subnets):
         routers_dict[connection["AS_1_router_hostname"]][connection["AS_1_router_interface"]] = first_ip
         routers_dict[connection["AS_2_router_hostname"]][connection["AS_2_router_interface"]] = second_ip
     
+def get_ibgp_neighbors(routers_dict, data):
+    for connection in data.get("internal_connections", []):
+        first_peer_loopback_ip = routers_dict[connection['first_peer_hostname']]['interfaces']['loopback0'].split(' ')[0]
+        second_peer_loopback_ip = routers_dict[connection['second_peer_hostname']]['interfaces']['loopback0'].split(' ')[0]
+        
+        routers_dict[connection['first_peer_hostname']]['bgp_neighbors'].append((second_peer_loopback_ip, False))
+        routers_dict[connection['second_peer_hostname']]['bgp_neighbors'].append((first_peer_loopback_ip, False))
+
+def get_ebgp_neighbors(routers_dict, data):
+    pass
 
 def get_routers_dict(data):
     """Convert the intent file into a super useful dict for our project, very fancy :tm:"""
@@ -96,16 +106,17 @@ def get_routers_dict(data):
 
             hostname = router.get("hostname")
             telnet_port = int(router.get("telnet_port"))
-            routers[hostname] = {"as_number" : as_number, "telnet_port" : telnet_port, "interfaces" : {}}
+            routers[hostname] = {"as_number" : as_number, "telnet_port" : telnet_port, "interfaces" : {}, 'bgp_neighbors' : []}
         
         as_subnets[as_number] = get_internal_ips(routers, as_data)
         get_loopback_ips(routers, as_data)
-    print(as_subnets)
+        get_ibgp_neighbors(routers, as_data)
     get_external_ips(routers, data, as_subnets)
+    
     return routers
 
 
 if __name__ == "__main__":
         args = argument_parser()
         data = load_intent_file(args.filename)
-        print(get_routers_dict(data)) 
+        pprint(get_routers_dict(data)) 
