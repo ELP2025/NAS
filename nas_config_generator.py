@@ -64,8 +64,8 @@ def get_external_ips(routers_dict, data, as_subnets):
         first_ip = str(next(subnet_ips)) +' 255.255.255.252'
         second_ip = str(next(subnet_ips)) + ' 255.255.255.252'
 
-        routers_dict[connection["AS_1_router_hostname"]][connection["AS_1_router_interface"]] = first_ip
-        routers_dict[connection["AS_2_router_hostname"]][connection["AS_2_router_interface"]] = second_ip
+        routers_dict[connection["AS_1_router_hostname"]]['interfaces'][connection["AS_1_router_interface"]] = first_ip
+        routers_dict[connection["AS_2_router_hostname"]]['interfaces'][connection["AS_2_router_interface"]] = second_ip
     
 def get_ibgp_neighbors(routers_dict, data):
     for connection in data.get("internal_connections", []):
@@ -76,7 +76,13 @@ def get_ibgp_neighbors(routers_dict, data):
         routers_dict[connection['second_peer_hostname']]['bgp_neighbors'].append((first_peer_loopback_ip, False))
 
 def get_ebgp_neighbors(routers_dict, data):
-    pass
+    for connection in data.get("AS_connections", []):
+        if connection["connexion"][0]["type"] == 'BGP':
+            first_peer_ip = routers_dict[connection["AS_1_router_hostname"]]["interfaces"][connection["AS_1_router_interface"]].split(' ')[0]
+            second_peer_ip = routers_dict[connection["AS_2_router_hostname"]]["interfaces"][connection["AS_2_router_interface"]].split(' ')[0]
+
+            routers_dict[connection["AS_1_router_hostname"]]['bgp_neighbors'].append((first_peer_ip, True))
+            routers_dict[connection["AS_2_router_hostname"]]['bgp_neighbors'].append((second_peer_ip, True))
 
 def get_routers_dict(data):
     """Convert the intent file into a super useful dict for our project, very fancy :tm:"""
@@ -90,13 +96,14 @@ def get_routers_dict(data):
 
             hostname = router.get("hostname")
             telnet_port = int(router.get("telnet_port"))
-            routers[hostname] = {"as_number" : as_number, "telnet_port" : telnet_port, "interfaces" : {}, 'bgp_neighbors' : []}
+            num_creation = int(router.get("num_creation"))
+            routers[hostname] = {"as_number" : as_number, "num_creation" : num_creation ,"telnet_port" : telnet_port, "interfaces" : {}, 'bgp_neighbors' : []}
         
         as_subnets[as_number] = get_internal_ips(routers, as_data)
         get_loopback_ips(routers, as_data)
         get_ibgp_neighbors(routers, as_data)
     get_external_ips(routers, data, as_subnets)
-    
+    get_ebgp_neighbors(routers, data)
     return routers
 
 #START OF CONFIG
