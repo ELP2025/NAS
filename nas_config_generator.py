@@ -4,22 +4,6 @@ import argparse
 import json
 import yaml
 
-# FILE INTERACTION AND USER INTERACTION
-def argument_parser():
-    parser = argparse.ArgumentParser(description='''Projet NAS 2024-2025 -- Génération automatisé de configurations CISCO avec support BGP/MPLS VPN''')
-    parser.add_argument('filename', help="Intent file describing the network that needs to be configured. YAML and JSON are supported")
-    parser.add_argument('-c', '--copy_config', help="Generate config files and copy them to the specified GNS3 directory")
-    parser.add_argument('-t', '--telnet', action='store_true', help="Automatically configures the routers using Telnet")
-    return parser.parse_args()
-
-def load_intent_file(filename):
-    """Loading the file as a Python dict object. Compatible with yaml and  json"""
-    with open(filename, 'r') as intent_file:
-        if (filename.split('.')[-1] == 'json') :
-            data = json.load(intent_file)
-        elif (filename.split('.')[-1] == 'yaml' or 'yml'):
-              data = yaml.safe_load(intent_file)
-    return data
 
 # UTILS FUNCTIONS
 def get_all_as_subnets(prefix, mask):
@@ -104,8 +88,121 @@ def get_routers_dict(data):
     get_external_ips(routers, data, as_subnets)
     return routers
 
+#START OF CONFIG
+def generate_base_cisco_config(hostname):
+    """
+    Génère une configuration de base pour un routeur Cisco.
+
+    :param hostname: Nom d'hôte du routeur (hostname)
+    :return: Chaîne de texte représentant la configuration de base
+    """
+    config = []
+    
+    # Configuration de base
+    config.append("service timestamps debug datetime msec")
+    config.append("service timestamps log datetime msec")
+    config.append("!")
+    config.append(f"hostname {hostname}")
+    config.append("!")
+    config.append("!")
+    return "\n".join(config)
+
+def config_interfaces(valeurs, num_as, router):
+    """
+    Génère une configuration pour les interfaces d'un routeur.
+
+    :param valeurs: Dictionnaire des interfaces avec leurs adresses IP
+    :return: Chaîne de texte représentant la configuration des interfaces
+    """
+    config = []
+    
+# Configuration des interfaces
+    for interface, ip in valeurs[router].items():
+        config.append(f"interface {interface}")
+        config.append(f" ip address {ip}")
+        config.append (f" ip ospf {num_as} area 0")
+        config.append("!")
+
+    return "\n".join(config)
+
+def bgp_add(bgp_config, num, num_as, network, border_routers, router):
+    """
+    Génère la configuration BGP pour un routeur Cisco.
+
+    :param bgp_config: Dictionnaire contenant les informations BGP (AS et voisins)
+    :param num: Numéro du routeur (extrait du nom du routeur)
+    :return: Chaîne de texte représentant la configuration BGP
+    """
+    config = []
+    # Configuration du BGP
+    config.append(f"router bgp {num_as}")
+    config.append(f" bgp router-id {num}.{num}.{num}.{num}")
+    config.append(" bgp log-neighbor-changes")
+    for neighbor in bgp_config[f"{router}"]:
+        print (neighbor)
+        config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
+        if neighbor[2]:
+            config.append(f" neighbor {neighbor[0]} update-source Loopback0")
+        else :
+            config.append(f" neighbor {neighbor[0]} route-map {neighbor[3].upper()} in")
+    config.append(" !\n address-family ipv4")
+    for border_router in border_routers:
+        if f"{router}" in border_router[0]:
+            for key, ip_value in network.items():
+                if key[0] == num_as:
+                    config.append(f"  network {ip_value}")
+    for neighbor in bgp_config[f"R{num}"]:
+        config.append(f"  neighbor {neighbor[0]} next-hop-self")
+        config.append(f"  neighbor {neighbor[0]} activate")
+        config.append(f"  neighbor {neighbor[0]} send-community both")
+    config.append(" exit-address-family")
+    config.append("!")
+    return "\n".join(config)
+
+def add_protocol(num, num_as, border_routers):
+    config = []
+    
+    config.append(f"ip router ospf {num_as}")
+    config.append(f" router-id {num}.{num}.{num}.{num}")
+    for router in border_routers:
+        if f"R{num}" == router[0]:
+            config.append(f" passive-interface {router[1]}")
+                 
+    return "\n".join(config)
+
+
+def generate_config_file(router, info):
+    num_as = info["num_as"]
+    num_creat = info["num_creat"]
+    file_name = f"i{num_creat}_startup-config.cfg"
+    with open(file_name, 'w') as file:
+        file.write(generate_base_cisco_config(router))
+        file.write("\n" + config_interfaces(info["interface"], num_as, router))
+        file.write("\n" + bgp_add(info["routers_bgp"], num_creat, num_as, info["router_network"], info["border_routers"], router))
+        file.write("\n" + add_protocol(num_creat, num_as , info["border_routers"]))
+    print(f"Configuration pour le router {router} terminée")
+# END OF CONFIG
+
+# FILE INTERACTION AND USER INTERACTION
+def argument_parser():
+    parser = argparse.ArgumentParser(description='''Projet NAS 2024-2025 -- Génération automatisé de configurations CISCO avec support BGP/MPLS VPN''')
+    parser.add_argument('filename', help="Intent file describing the network that needs to be configured. YAML and JSON are supported")
+    parser.add_argument('-c', '--copy_config', help="Generate config files and copy them to the specified GNS3 directory")
+    parser.add_argument('-t', '--telnet', action='store_true', help="Automatically configures the routers using Telnet")
+    return parser.parse_args()
+
+def load_intent_file(filename):
+    """Loading the file as a Python dict object. Compatible with yaml and  json"""
+    with open(filename, 'r') as intent_file:
+        if (filename.split('.')[-1] == 'json') :
+            data = json.load(intent_file)
+        elif (filename.split('.')[-1] == 'yaml' or 'yml'):
+              data = yaml.safe_load(intent_file)
+    return data
+
+
 
 if __name__ == "__main__":
         args = argument_parser()
         data = load_intent_file(args.filename)
-        print(get_routers_dict(data)) 
+        print(get_routers_dict(data))
