@@ -71,12 +71,24 @@ def get_loopback_ips(routers_dict, as_data):
         routers_dict[hostname]["interfaces"]["loopback0"] = ip
 
         current_subnet = next(loopback_subnets)
-        
+
+def get_external_ips(routers_dict, data, as_subnets):
+     for connection in data.get("AS_connections", []):
+        subnet = next(as_subnets[int(connection["AS_1"]) if int(connection["AS_1"]) < int(connection["AS_2"]) else int(connection["AS_2"])])
+
+        subnet_ips = subnet.hosts()
+        first_ip = str(next(subnet_ips)) +' 255.255.255.252'
+        second_ip = str(next(subnet_ips)) + ' 255.255.255.252'
+
+        routers_dict[connection["AS_1_router_hostname"]][connection["AS_1_router_interface"]] = first_ip
+        routers_dict[connection["AS_2_router_hostname"]][connection["AS_2_router_interface"]] = second_ip
+    
 
 def get_routers_dict(data):
     """Convert the intent file into a super useful dict for our project, very fancy :tm:"""
     routers = dict()
-    for as_name_string in [key for key, _ in data.items() if "AS" in key]: # Find all the AS
+    as_subnets = dict()
+    for as_name_string in [key for key, _ in data.items() if "AS_" not in key]: # Find all the AS
         as_data = data.get(as_name_string, {})[0]
         as_number = int(as_data.get("number"))
 
@@ -86,8 +98,10 @@ def get_routers_dict(data):
             telnet_port = int(router.get("telnet_port"))
             routers[hostname] = {"as_number" : as_number, "telnet_port" : telnet_port, "interfaces" : {}}
         
-        get_internal_ips(routers, as_data)
+        as_subnets[as_number] = get_internal_ips(routers, as_data)
         get_loopback_ips(routers, as_data)
+    print(as_subnets)
+    get_external_ips(routers, data, as_subnets)
     return routers
 
 
