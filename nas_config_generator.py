@@ -159,7 +159,7 @@ def config_interfaces(valeurs, num_as):
 
     return "\n".join(config)
 
-def bgp_add(bgp_config, num, num_as, network, border_routers, router):
+def bgp_add(bgp_config, num, num_as, network, router):
     """
     Génère la configuration BGP pour un routeur Cisco.
 
@@ -172,23 +172,13 @@ def bgp_add(bgp_config, num, num_as, network, border_routers, router):
     config.append(f"router bgp {num_as}")
     config.append(f" bgp router-id {num}.{num}.{num}.{num}")
     config.append(" bgp log-neighbor-changes")
-    for neighbor in bgp_config[f"{router}"]:
-        print (neighbor)
+    for neighbor in bgp_config:
         config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
-        if neighbor[2]:
+        if neighbor[1] == num_as:
             config.append(f" neighbor {neighbor[0]} update-source Loopback0")
-        else :
-            config.append(f" neighbor {neighbor[0]} route-map {neighbor[3].upper()} in")
     config.append(" !\n address-family ipv4")
-    for border_router in border_routers:
-        if f"{router}" in border_router[0]:
-            for key, ip_value in network.items():
-                if key[0] == num_as:
-                    config.append(f"  network {ip_value}")
-    for neighbor in bgp_config[f"R{num}"]:
-        config.append(f"  neighbor {neighbor[0]} next-hop-self")
+    for neighbor in bgp_config:
         config.append(f"  neighbor {neighbor[0]} activate")
-        config.append(f"  neighbor {neighbor[0]} send-community both")
     config.append(" exit-address-family")
     config.append("!")
     return "\n".join(config)
@@ -212,8 +202,8 @@ def generate_config_file(router, info):
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(router))
         file.write("\n" + config_interfaces(info["interfaces"], num_as))
-        #file.write("\n" + bgp_add(info["routers_bgp"], num_creat, num_as, info["router_network"], info["border_routers"], router))
-        #file.write("\n" + add_protocol(num_creat, num_as , info["border_routers"]))
+        file.write("\n" + bgp_add(info["bgp_neighbors"], num_creat, num_as, info["router_network"], router))
+        file.write("\n" + add_protocol(num_creat, num_as , info["border_routers"]))
     print(f"Configuration pour le router {router} terminée")
 # END OF CONFIG
 
