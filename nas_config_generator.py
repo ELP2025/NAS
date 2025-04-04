@@ -84,21 +84,25 @@ def get_external_ips(routers_dict, data, as_subnets):
         routers_dict[connection["AS_2_router_hostname"]]['interfaces'][connection["AS_2_router_interface"]] = second_ip
     
 def get_ibgp_neighbors(routers_dict, data):
-    for connection in data.get("internal_connections", []):
-        first_peer_loopback_ip = routers_dict[connection['first_peer_hostname']]['interfaces']['loopback0'].split(' ')[0]
-        second_peer_loopback_ip = routers_dict[connection['second_peer_hostname']]['interfaces']['loopback0'].split(' ')[0]
-        
-        routers_dict[connection['first_peer_hostname']]['bgp_neighbors'].append((second_peer_loopback_ip, False))
-        routers_dict[connection['second_peer_hostname']]['bgp_neighbors'].append((first_peer_loopback_ip, False))
+    for router in data["routers"]:
+        for second_peer in data["routers"]:
+            if router == second_peer : continue
+            loopback_ip = routers_dict[second_peer["hostname"]]['interfaces']['loopback0'].split(' ')[0]
+            
+            routers_dict[router["hostname"]]['bgp_neighbors'].append((loopback_ip, int(data["number"]),False))
 
 def get_ebgp_neighbors(routers_dict, data):
+    print(routers_dict)
     for connection in data.get("AS_connections", []):
         if connection["connexion"][0]["type"] == 'BGP':
             first_peer_ip = routers_dict[connection["AS_1_router_hostname"]]["interfaces"][connection["AS_1_router_interface"]].split(' ')[0]
             second_peer_ip = routers_dict[connection["AS_2_router_hostname"]]["interfaces"][connection["AS_2_router_interface"]].split(' ')[0]
 
-            routers_dict[connection["AS_1_router_hostname"]]['bgp_neighbors'].append((first_peer_ip, True))
-            routers_dict[connection["AS_2_router_hostname"]]['bgp_neighbors'].append((second_peer_ip, True))
+            first_peer_as = int(routers_dict[connection["AS_1_router_hostname"]]["as_number"])
+            second_peer_as = int(routers_dict[connection["AS_2_router_hostname"]]["as_number"])
+
+            routers_dict[connection["AS_1_router_hostname"]]['bgp_neighbors'].append((second_peer_ip, second_peer_as,True))
+            routers_dict[connection["AS_2_router_hostname"]]['bgp_neighbors'].append((first_peer_ip, first_peer_as,True))
 
 def get_routers_dict(data):
     """Convert the intent file into a super useful dict for our project, very fancy :tm:"""
