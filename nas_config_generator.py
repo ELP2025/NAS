@@ -155,15 +155,17 @@ def config_interfaces(valeurs, num_as):
     config = []
     
 # Configuration des interfaces
-    for interface, ip in valeurs.items():
+    for interface, values_interface in valeurs.items():
         config.append(f"interface {interface}")
-        config.append(f" ip address {ip}")
+        config.append(f" ip address {values_interface[0]}")
         config.append (f" ip ospf {num_as} area 0")
+        if values_interface[1] == "True":
+            config.append (" mpls ip")
         config.append("!")
 
     return "\n".join(config)
 
-def bgp_add(bgp_config, num, num_as, network, router):
+def bgp_add(bgp_config, num, num_as, router):
     """
     Génère la configuration BGP pour un routeur Cisco.
 
@@ -187,15 +189,13 @@ def bgp_add(bgp_config, num, num_as, network, router):
     config.append("!")
     return "\n".join(config)
 
-def add_protocol(num, num_as, border_routers):
+def add_protocol(num, num_as):
     config = []
     
     config.append(f"ip router ospf {num_as}")
     config.append(f" router-id {num}.{num}.{num}.{num}")
-    for router in border_routers:
-        if f"R{num}" == router[0]:
-            config.append(f" passive-interface {router[1]}")
-                 
+    config.append(" redistribute connected")
+    config.append("!")
     return "\n".join(config)
 
 
@@ -206,8 +206,8 @@ def generate_config_file(router, info):
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(router))
         file.write("\n" + config_interfaces(info["interfaces"], num_as))
-        file.write("\n" + bgp_add(info["bgp_neighbors"], num_creat, num_as, info["router_network"], router))
-        file.write("\n" + add_protocol(num_creat, num_as , info["border_routers"]))
+        file.write("\n" + add_protocol(num_creat, num_as))
+        file.write("\n" + bgp_add(info["bgp_neighbors"], num_creat, num_as, router))
     print(f"Configuration pour le router {router} terminée")
 # END OF CONFIG
 
