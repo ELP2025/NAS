@@ -138,7 +138,8 @@ def get_routers_dict(data):
             hostname = router.get("hostname")
             telnet_port = int(router.get("telnet_port"))
             num_creation = int(router.get("num_creation"))
-            routers[hostname] = {"as_number" : as_number, "mpls": False, "num_creation" : num_creation ,"telnet_port" : telnet_port, "interfaces" : {}, 'bgp_neighbors' : [], 'vpns': []}
+            is_border = router.get("is_border")
+            routers[hostname] = {"as_number" : as_number,"is_border" : is_border,"mpls": False, "num_creation" : num_creation ,"telnet_port" : telnet_port, "interfaces" : {}, 'bgp_neighbors' : [], 'vpns': []}
         
         as_subnets[as_number] = get_internal_ips(routers, as_data)
         get_loopback_ips(routers, as_data)

@@ -6,15 +6,19 @@ AS1:
   mpls: True
   routers:
   - hostname: PE1
+    is_border: True
     num_creation : 1
     telnet_port: 3001
   - hostname: PE2
+    is_border: True
     num_creation : 4
     telnet_port: 3002
   - hostname: P1
+    is_border: False
     num_creation : 2
     telnet_port: 3003
   - hostname: P2
+    is_border: False
     num_creation : 3
     telnet_port: 3004
   internal_connections:
@@ -39,9 +43,11 @@ AS2:
   mpls: False
   routers:
   - hostname: CE1
+    is_border: True
     telnet_port: 3005
     num_creation : 5
   - hostname: CE2
+    is_border: True
     telnet_port: 3006
     num_creation : 6
 
@@ -53,6 +59,7 @@ AS3:
   IPv4_mask: '16'
   routers:
   - hostname: CE3
+    is_border: True
     telnet_port: 3007
     num_creation : 7
 
@@ -64,6 +71,7 @@ AS4:
   mpls: False
   routers:
   - hostname: CE4
+    is_border: True
     telnet_port: 3008
     num_creation : 8
 
