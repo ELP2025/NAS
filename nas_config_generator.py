@@ -270,7 +270,7 @@ def generate_config_file(router, info, router_infos):
         file.write(generate_base_cisco_config(router, info["mpls"], info["vpns"]))
         file.write("\n" + config_interfaces(info["interfaces"], num_as))
         file.write("\n" + add_protocol(num_creat, num_as))
-        file.write("\n" + bgp_add(info["bgp_neighbors"], num_creat, num_as, router))
+        file.write("\n" + bgp_add(info["bgp_neighbors"], num_creat, num_as))
         if info["vpns"]:
             file.write("\n" + add_vpnv4(router, num_as, router_infos))
             file.write("\n" + add_vrf(info["vpns"]))
