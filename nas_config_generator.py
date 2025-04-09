@@ -189,16 +189,17 @@ def config_interfaces(valeurs, num_as):
     for interface, values_interface in valeurs.items():
         config.append(f"interface {interface}")
         config.append(f" ip address {values_interface[0]}")
-        config.append (f" ip ospf {num_as} area 0")
         if values_interface[1]:
             config.append (" mpls ip")
         if values_interface[2]:
             config.append(f" ip vrf forwarding {values_interface[2]}")
+        else : 
+            config.append (f" ip ospf {num_as} area 0")
         config.append("!")
 
     return "\n".join(config)
 
-def bgp_add(bgp_config, num, num_as, router):
+def bgp_add(bgp_config, num, num_as):
     """
     Génère la configuration BGP pour un routeur Cisco.
 
