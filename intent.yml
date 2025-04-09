@@ -108,4 +108,4 @@ AS_connections:
   AS_2_router_interface: 'GigabitEthernet3/0'
   connexion:
   - type: 'VPN'
-    relation: 'CLIENT2_VRF'
+    vrf_name: 'CLIENT2_VRF'
