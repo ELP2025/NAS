@@ -149,7 +149,7 @@ def get_routers_dict(data):
     return routers
 
 #START OF CONFIG
-def generate_base_cisco_config(hostname):
+def generate_base_cisco_config(hostname, mpls, vrfs):
     """
     Génère une configuration de base pour un routeur Cisco.
 
@@ -164,7 +164,13 @@ def generate_base_cisco_config(hostname):
     config.append("!")
     config.append(f"hostname {hostname}")
     config.append("!")
+    for vrf in vrfs:
+        config.append(f"ip vfr {vrf["name"]}")
+        config.append(f" {vrf["rd"]}")
+        config.append(f" {vrf["rt"]}")
     config.append("!")
+    if mpls == True:
+        config.append("mpls label protocol ldp\nmultilink bundle-name authenticated\n!")
     return "\n".join(config)
 
 def config_interfaces(valeurs, num_as):
@@ -178,10 +184,12 @@ def config_interfaces(valeurs, num_as):
     
 # Configuration des interfaces
     for interface, values_interface in valeurs.items():
+        print(values_interface)
         config.append(f"interface {interface}")
         config.append(f" ip address {values_interface[0]}")
         config.append (f" ip ospf {num_as} area 0")
-        if values_interface[1] == "True":
+        if values_interface[1] == True:
+            print ('COucou')
             config.append (" mpls ip")
         config.append("!")
 
@@ -220,16 +228,36 @@ def add_protocol(num, num_as):
     config.append("!")
     return "\n".join(config)
 
+def add_vpn_vrf(neighbor, vrfs):
+    config = []
+    
+    config.append(" address-family vpnv4")
+    config.append(f"  neighbor {neighbor["ip"]} remote-as {neighbor["num_as"]}")
+    config.append(f"  neighbor {neighbor["ip"]} update-source Loopback0")
+    config.append(f"  neighbor {neighbor["ip"]} activate")
+    config.append(f"  neighbor {neighbor["ip"]} send-community both")
+    config.append(" exit-address-family")
+    config.append("!")
+    for vrf in vrfs:
+        config.append(f" address-family ipv4 vrf {vrf["name"]}")
+        config.append("  redistribute connected")
+        config.append(f"  neighbor {vrf["neighbor"]} remote-as {vrf["neighbor_as"]}")
+        config.append(f"  neighbor {vrf["neighbor"]} activate")
+        config.append(" exit-address-family")
+        config.append("!")
 
 def generate_config_file(router, info):
     num_as = info["as_number"]
     num_creat = info["num_creation"]
     file_name = f"i{num_creat}_startup-config.cfg"
     with open(file_name, 'w') as file:
-        file.write(generate_base_cisco_config(router))
+        file.write(generate_base_cisco_config(router, info["mpls"], info["vpn"]))
         file.write("\n" + config_interfaces(info["interfaces"], num_as))
         file.write("\n" + add_protocol(num_creat, num_as))
         file.write("\n" + bgp_add(info["bgp_neighbors"], num_creat, num_as, router))
+        if info["vpn"] == True:
+            file.write("\n" + add_vpn_vrf(info["vpn"]["neighbor"], num_as))
+
     print(f"Configuration pour le router {router} terminée")
 # END OF CONFIG
 
