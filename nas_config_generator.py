@@ -39,6 +39,7 @@ def get_internal_ips(routers_dict, as_data):
     """Generate the ip for internal connections in an AS"""
     as_subnets = get_all_as_subnets(as_data.get("IPv4_prefix"), as_data.get("IPv4_mask"))
     current_subnet = next(as_subnets)
+    is_mpls_as = as_data.get("mpls", False)
     for internal in as_data.get("internal_connections", {}):
         # Getting all the data
         first_peer = routers_dict.get(internal.get('first_peer_hostname', None))
@@ -54,8 +55,8 @@ def get_internal_ips(routers_dict, as_data):
         first_ip = str(next(subnet_ips)) + ' 255.255.255.252'
         second_ip = str(next(subnet_ips)) + ' 255.255.255.252'
     
-        first_peer["interfaces"][first_interface] = first_ip
-        second_peer["interfaces"][second_interface] = second_ip
+        first_peer["interfaces"][first_interface] = (first_ip, is_mpls_as)
+        second_peer["interfaces"][second_interface] = (second_ip, is_mpls_as)
            
         current_subnet = next(as_subnets)
 
@@ -68,7 +69,7 @@ def get_loopback_ips(routers_dict, as_data):
     for hostname, router_data in routers_dict.items():
         if int(router_data["as_number"]) != int(as_data["number"]) : continue
         ip = str(current_subnet.hosts()[0]) + ' 255.255.255.255'
-        routers_dict[hostname]["interfaces"]["loopback0"] = ip
+        routers_dict[hostname]["interfaces"]["loopback0"] = (ip, False)
 
         current_subnet = next(loopback_subnets)
 
@@ -80,14 +81,14 @@ def get_external_ips(routers_dict, data, as_subnets):
         first_ip = str(next(subnet_ips)) +' 255.255.255.252'
         second_ip = str(next(subnet_ips)) + ' 255.255.255.252'
 
-        routers_dict[connection["AS_1_router_hostname"]]['interfaces'][connection["AS_1_router_interface"]] = first_ip
-        routers_dict[connection["AS_2_router_hostname"]]['interfaces'][connection["AS_2_router_interface"]] = second_ip
+        routers_dict[connection["AS_1_router_hostname"]]['interfaces'][connection["AS_1_router_interface"]] = (first_ip, False)
+        routers_dict[connection["AS_2_router_hostname"]]['interfaces'][connection["AS_2_router_interface"]] = (second_ip, False)
     
 def get_ibgp_neighbors(routers_dict, data):
     for router in data["routers"]:
         for second_peer in data["routers"]:
             if router == second_peer : continue
-            loopback_ip = routers_dict[second_peer["hostname"]]['interfaces']['loopback0'].split(' ')[0]
+            loopback_ip = routers_dict[second_peer["hostname"]]['interfaces']['loopback0'][0].split(' ')[0]
             
             routers_dict[router["hostname"]]['bgp_neighbors'].append((loopback_ip, int(data["number"]),False))
 
@@ -95,8 +96,8 @@ def get_ebgp_neighbors(routers_dict, data):
     print(routers_dict)
     for connection in data.get("AS_connections", []):
         if connection["connexion"][0]["type"] == 'BGP':
-            first_peer_ip = routers_dict[connection["AS_1_router_hostname"]]["interfaces"][connection["AS_1_router_interface"]].split(' ')[0]
-            second_peer_ip = routers_dict[connection["AS_2_router_hostname"]]["interfaces"][connection["AS_2_router_interface"]].split(' ')[0]
+            first_peer_ip = routers_dict[connection["AS_1_router_hostname"]]["interfaces"][connection["AS_1_router_interface"]][0].split(' ')[0]
+            second_peer_ip = routers_dict[connection["AS_2_router_hostname"]]["interfaces"][connection["AS_2_router_interface"]][0].split(' ')[0]
 
             first_peer_as = int(routers_dict[connection["AS_1_router_hostname"]]["as_number"])
             second_peer_as = int(routers_dict[connection["AS_2_router_hostname"]]["as_number"])

@@ -3,6 +3,7 @@ AS1:
 - number: '1000'
   IPv4_prefix: '100.50.0.0'
   IPv4_mask: '16'
+  mpls: True
   routers:
   - hostname: PE1
     num_creation : 1
@@ -35,6 +36,7 @@ AS2:
 - number: '2000'
   IPv4_prefix: '100.52.0.0'
   IPv4_mask: '16'
+  mpls: False
   routers:
   - hostname: CE1
     telnet_port: 3005
@@ -46,6 +48,7 @@ AS2:
 
 AS3:
 - number: '3000'
+  mpls: False
   IPv4_prefix: '100.53.0.0'
   IPv4_mask: '16'
   routers:
@@ -58,6 +61,7 @@ AS4:
 - number: '4000'
   IPv4_prefix: '100.54.0.0'
   IPv4_mask: '16'
+  mpls: False
   routers:
   - hostname: CE4
     telnet_port: 3008
