@@ -79,6 +79,7 @@ AS_connections:
   AS_2_router_interface: 'GigabitEthernet2/0'
   connexion:
   - type: 'VPN'
+    vrf_name: 'CLIENT1_VRF'
 - AS_1: '1000'
   AS_1_router_hostname: 'PE2'
   AS_1_router_interface: 'GigabitEthernet2/0'
@@ -87,6 +88,7 @@ AS_connections:
   AS_2_router_interface: 'GigabitEthernet2/0'
   connexion:
   - type: 'VPN'
+    vrf_name: 'CLIENT1_VRF'
   #Voir plus tard
 - AS_1: '1000'
   AS_1_router_hostname: 'PE1'
