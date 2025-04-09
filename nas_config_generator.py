@@ -240,8 +240,8 @@ def add_vpnv4(hostname, as_num, router_infos):
     
     config.append(" address-family vpnv4")
     for router in border_routers_ips:
-        config.append(f"  neighbor {router} remote-as {as_num}")
-        config.append(f"  neighbor {router} update-source Loopback0")
+        #config.append(f"  neighbor {router} remote-as {as_num}")
+        #config.append(f"  neighbor {router} update-source Loopback0")
         config.append(f"  neighbor {router} activate")
         config.append(f"  neighbor {router} send-community both")
     config.append(" exit-address-family")
@@ -254,7 +254,7 @@ def add_vrf(vpn):
     
     for vrf in vpn:
         config.append(f" address-family ipv4 vrf {vrf[0]}")
-        config.append("  redistribute connected")
+        #config.append("  redistribute connected")
         config.append(f"  neighbor {vrf[3]} remote-as {vrf[4]}")
         config.append(f"  neighbor {vrf[3]} activate")
         config.append(" exit-address-family")
