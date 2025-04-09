@@ -96,7 +96,6 @@ def get_ibgp_neighbors(routers_dict, data):
             routers_dict[router["hostname"]]['bgp_neighbors'].append((loopback_ip, int(data["number"]),False))
 
 def get_ebgp_neighbors(routers_dict, data):
-    print(routers_dict)
     for connection in data.get("AS_connections", []):
         first_peer_ip = routers_dict[connection["AS_1_router_hostname"]]["interfaces"][connection["AS_1_router_interface"]][0].split(' ')[0]
         second_peer_ip = routers_dict[connection["AS_2_router_hostname"]]["interfaces"][connection["AS_2_router_interface"]][0].split(' ')[0]
