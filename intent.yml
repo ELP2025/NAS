@@ -97,8 +97,8 @@ AS_connections:
   AS_2_router_hostname: 'CE3'
   AS_2_router_interface: 'GigabitEthernet3/0'
   connexion:
-  - type: 'BGP'
-    relation: 'provider'
+  - type: 'VPN'
+    vrf_name: 'CLIENT2_VRF'
 - AS_1: '1000'
   AS_1_router_hostname: 'PE2'
   AS_1_router_interface: 'GigabitEthernet3/0'
@@ -106,5 +106,5 @@ AS_connections:
   AS_2_router_hostname: 'CE4'
   AS_2_router_interface: 'GigabitEthernet3/0'
   connexion:
-  - type: 'BGP'
-    relation: 'provider'
+  - type: 'VPN'
+    relation: 'CLIENT2_VRF'
