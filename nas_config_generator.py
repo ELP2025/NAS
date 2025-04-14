@@ -188,14 +188,15 @@ def config_interfaces(valeurs, num_as):
 # Configuration des interfaces
     for interface, values_interface in valeurs.items():
         config.append(f"interface {interface}")
-        config.append(f" ip address {values_interface[0]}")
-        if values_interface[1]:
-            config.append (" mpls ip")
         if values_interface[2]:
             config.append(f" ip vrf forwarding {values_interface[2]}")
         else : 
             config.append (f" ip ospf {num_as} area 0")
         config.append("!")
+        config.append(f" ip address {values_interface[0]}")
+        if values_interface[1]:
+            config.append (" mpls ip")
+
 
     return "\n".join(config)
 
