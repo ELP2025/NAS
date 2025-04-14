@@ -257,7 +257,7 @@ def add_vrf(vpn):
     
     for vrf in vpn:
         config.append(f" address-family ipv4 vrf {vrf[0]}")
-        #config.append("  redistribute connected")
+        config.append("  redistribute connected")
         config.append(f"  neighbor {vrf[3]} remote-as {vrf[4]}")
         config.append(f"  neighbor {vrf[3]} activate")
         config.append(" exit-address-family")
