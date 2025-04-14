@@ -166,7 +166,7 @@ def generate_base_cisco_config(hostname, mpls, vrfs):
     config.append(f"hostname {hostname}")
     config.append("!")
     for vrf in vrfs:
-        config.append(f"ip vfr {vrf[0]}")
+        config.append(f"ip vrf {vrf[0]}")
         config.append(f" rd {vrf[1]}:{vrf[1]}")
         config.append(f" route-target export {vrf[2]}:{vrf[2]}")
         config.append(f" route-target import {vrf[2]}:{vrf[2]}")
@@ -192,10 +192,11 @@ def config_interfaces(valeurs, num_as):
             config.append(f" ip vrf forwarding {values_interface[2]}")
         else : 
             config.append (f" ip ospf {num_as} area 0")
-        config.append("!")
         config.append(f" ip address {values_interface[0]}")
+        config.append (" negotiation auto")
         if values_interface[1]:
             config.append (" mpls ip")
+        config.append("!")
 
 
     return "\n".join(config)
