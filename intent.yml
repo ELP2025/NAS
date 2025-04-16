@@ -4,6 +4,8 @@ AS1:
   IPv4_prefix: '100.50.0.0'
   IPv4_mask: '16'
   mpls: True
+  igp: True #l'igp est activé sur toutes les interfaces de tous les routeurs sauf celles des vrfs
+  VPN_Client: False 
   routers:
   - hostname: PE1
     is_border: True
@@ -41,6 +43,8 @@ AS2:
   IPv4_prefix: '100.52.0.0'
   IPv4_mask: '16'
   mpls: False
+  igp: False
+  VPN_Client: True
   routers:
   - hostname: CE1
     is_border: True
@@ -55,6 +59,8 @@ AS2:
 AS3:
 - number: '3000'
   mpls: False
+  igp: False
+  VPN_Client: True
   IPv4_prefix: '100.53.0.0'
   IPv4_mask: '16'
   routers:
@@ -69,6 +75,8 @@ AS4:
   IPv4_prefix: '100.54.0.0'
   IPv4_mask: '16'
   mpls: False
+  igp: False
+  VPN_Client: True
   routers:
   - hostname: CE4
     is_border: True
