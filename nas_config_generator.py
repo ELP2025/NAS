@@ -79,7 +79,7 @@ def get_loopback_ips(routers_dict, as_data):
 
 def get_external_ips(routers_dict, data, as_subnets):
      for connection in data.get("AS_connections", []):
-        subnet = next(as_subnets[int(connection["AS_1"]) if int(connection["AS_1"]) < int(connection["AS_2"]) else int(connection["AS_2"])])
+        subnet = next(as_subnets[int(connection["AS_1"]) if int(connection["AS_1"]) > int(connection["AS_2"]) else int(connection["AS_2"])])
 
         subnet_ips = subnet.hosts()
         first_ip = str(next(subnet_ips)) +' 255.255.255.252'
@@ -133,6 +133,8 @@ def get_routers_dict(data):
     for as_name_string in [key for key, _ in data.items() if "AS_" not in key]: # Find all the AS
         as_data = data.get(as_name_string, {})[0]
         as_number = int(as_data.get("number"))
+        is_igp_as = as_data.get("igp", False)
+        is_vpn_client=as_data.get("VPN_Client", False)
 
         for router in as_data.get("routers",[]):
 
@@ -140,7 +142,18 @@ def get_routers_dict(data):
             telnet_port = int(router.get("telnet_port"))
             num_creation = int(router.get("num_creation"))
             is_border = router.get("is_border")
-            routers[hostname] = {"as_number" : as_number,"is_border" : is_border,"mpls": False, "num_creation" : num_creation ,"telnet_port" : telnet_port, "interfaces" : {}, 'bgp_neighbors' : [], 'vpns': []}
+            routers[hostname] = {
+                "as_number" : as_number,
+                "is_border" : is_border,
+                "mpls": False, 
+                "igp": is_igp_as,
+                "VPN_Client": is_vpn_client,
+                "num_creation" : num_creation ,
+                "telnet_port" : telnet_port, 
+                "interfaces" : {}, 
+                'bgp_neighbors' : [], 
+                'vpns': []
+            }
         
         as_subnets[as_number] = get_internal_ips(routers, as_data)
         get_loopback_ips(routers, as_data)
@@ -176,7 +189,7 @@ def generate_base_cisco_config(hostname, mpls, vrfs):
         config.append("mpls label protocol ldp\nmultilink bundle-name authenticated\n!")
     return "\n".join(config)
 
-def config_interfaces(valeurs, num_as):
+def config_interfaces(valeurs, num_as, igp):
     """
     Génère une configuration pour les interfaces d'un routeur.
 
@@ -185,12 +198,12 @@ def config_interfaces(valeurs, num_as):
     """
     config = []
     
-# Configuration des interfaces
+    # Configuration des interfaces
     for interface, values_interface in valeurs.items():
         config.append(f"interface {interface}")
         if values_interface[2]:
             config.append(f" ip vrf forwarding {values_interface[2]}")
-        else : 
+        elif igp:
             config.append (f" ip ospf {num_as} area 0")
         config.append(f" ip address {values_interface[0]}")
         config.append (" negotiation auto")
@@ -201,7 +214,7 @@ def config_interfaces(valeurs, num_as):
 
     return "\n".join(config)
 
-def bgp_add(bgp_config, num, num_as):
+def bgp_add(bgp_config, num, num_as, VPN_Client):
     """
     Génère la configuration BGP pour un routeur Cisco.
 
@@ -219,20 +232,26 @@ def bgp_add(bgp_config, num, num_as):
         if neighbor[1] == num_as:
             config.append(f" neighbor {neighbor[0]} update-source Loopback0")
     config.append(" !\n address-family ipv4")
+    if VPN_Client:
+        config.append("  redistribute connected")
     for neighbor in bgp_config:
         config.append(f"  neighbor {neighbor[0]} activate")
+        if VPN_Client:
+            config.append(f"  neighbor {neighbor[0]} allowas-in")
     config.append(" exit-address-family")
     config.append("!")
     return "\n".join(config)
 
-def add_protocol(num, num_as):
+def add_protocol(num, num_as, igp):
     config = []
-    
-    config.append(f"router ospf {num_as}")
-    config.append(f" router-id {num}.{num}.{num}.{num}")
-    config.append(" redistribute connected")
-    config.append("!")
-    return "\n".join(config)
+    if igp:
+        config.append(f"router ospf {num_as}")
+        config.append(f" router-id {num}.{num}.{num}.{num}")
+        config.append(" redistribute connected")
+        config.append("!")
+        return "\n".join(config)
+    else:
+        return "!"
 
 def add_vpnv4(hostname, as_num, router_infos):
     config = []
@@ -243,8 +262,6 @@ def add_vpnv4(hostname, as_num, router_infos):
     
     config.append(" address-family vpnv4")
     for router in border_routers_ips:
-        #config.append(f"  neighbor {router} remote-as {as_num}")
-        #config.append(f"  neighbor {router} update-source Loopback0")
         config.append(f"  neighbor {router} activate")
         config.append(f"  neighbor {router} send-community both")
     config.append(" exit-address-family")
@@ -270,9 +287,9 @@ def generate_config_file(router, info, router_infos):
     file_name = f"i{num_creat}_startup-config.cfg"
     with open(file_name, 'w') as file:
         file.write(generate_base_cisco_config(router, info["mpls"], info["vpns"]))
-        file.write("\n" + config_interfaces(info["interfaces"], num_as))
-        file.write("\n" + add_protocol(num_creat, num_as))
-        file.write("\n" + bgp_add(info["bgp_neighbors"], num_creat, num_as))
+        file.write("\n" + config_interfaces(info["interfaces"], num_as, info["igp"]))
+        file.write("\n" + add_protocol(num_creat, num_as, info["igp"]))
+        file.write("\n" + bgp_add(info["bgp_neighbors"], num_creat, num_as, info["VPN_Client"]))
         if info["vpns"]:
             file.write("\n" + add_vpnv4(router, num_as, router_infos))
             file.write("\n" + add_vrf(info["vpns"]))
