@@ -228,16 +228,21 @@ def bgp_add(bgp_config, num, num_as, VPN_Client):
     config.append(f" bgp router-id {num}.{num}.{num}.{num}")
     config.append(" bgp log-neighbor-changes")
     for neighbor in bgp_config:
-        config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
-        if neighbor[1] == num_as:
-            config.append(f" neighbor {neighbor[0]} update-source Loopback0")
+        if VPN_Client and neighbor[1] != num_as:
+            config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
+        elif not VPN_Client:
+            config.append(f" neighbor {neighbor[0]} remote-as {neighbor[1]}")
+            if neighbor[1] == num_as:
+                config.append(f" neighbor {neighbor[0]} update-source Loopback0")
     config.append(" !\n address-family ipv4")
     if VPN_Client:
         config.append("  redistribute connected")
     for neighbor in bgp_config:
-        config.append(f"  neighbor {neighbor[0]} activate")
-        if VPN_Client:
+        if VPN_Client and neighbor[1] != num_as:
+            config.append(f"  neighbor {neighbor[0]} activate")
             config.append(f"  neighbor {neighbor[0]} allowas-in")
+        elif not VPN_Client:
+            config.append(f"  neighbor {neighbor[0]} activate")
     config.append(" exit-address-family")
     config.append("!")
     return "\n".join(config)
